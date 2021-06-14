@@ -1,0 +1,18 @@
+{
+ "botIrcToken": "oauth:getthisfromhere",
+ "botUsername": "majmusicbot",
+ "botClientID": "getThisFromTwitchDevConsole",
+ "botSecret": "getThisFromTwitchDevConsole",
+ "channel": "myanalogjournal_",
+ "acrKey": "getThisFromACRCloudConsole",
+ "acrSecret": "getThisFromACRCloudConsole",
+ "acrHostUrl": "getThisFromACRCloudConsole",
+ "recordedSavePath": "F:\\twitch",
+ "botToken": {
+     "oauthToken": "thisIsGeneratedBasedOnClientIdAndSecret",
+     "expirationDate": "1900-01-01"
+ },
+ "enableVpnRotation": false,
+ "vpnConfigFolders": [],
+ "vpnUserPwdConfigPath": ""
+}
