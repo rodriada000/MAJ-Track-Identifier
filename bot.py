@@ -9,30 +9,13 @@ from maj.identifier import Identifier
 from maj.twitchrecorder import TwitchRecorder
 from maj.songlist import Song,SongList
 from maj.vpnrotator import VpnRotator
+from maj.utils import botreplys
 
-HAS_GREETED = False
-GREETINGS = ["/me has landed!", "/me is in the house!", "a wild /me has appeared.", "yo yo yo it's your favorite bot bud !", "It's your friendly neighborhood bot bud /me !"]
-DISCO_GREETINGS = ["/me would like to welcome you to Disco Friday!", "Who's ready for Disco Friday?! this bot is ready!", "/me is ready to shake it for Disco Friday!", "/me learned how to spell D-I-S-C-O F-R-I-D-A-Y !"]
-JAZZ_GREETINGS = ["/me would like to welcome you to Monday Jazz Club!", "Who's ready for a relaxing Monday Jazz Club? this bot is.", "/me is ready to take it easy for Monday Jazz Club..."]
-SOUL_GREETINGS = ["/me would like to welcome you to Soulful Wednesday!", "Who's ready for Soulful Wednesday?! this bot is ready!", "/me is ready to get soulful for Soulful Wednesday!", "choo choo all aboard the soul train for this Soulful Wednesday!"]
-
-def get_greeting(date):
-    if date.weekday() == 0:
-        return JAZZ_GREETINGS[random.randint(0,len(JAZZ_GREETINGS) - 1)]
-    elif date.weekday() == 2:
-        return SOUL_GREETINGS[random.randint(0,len(SOUL_GREETINGS) - 1)]
-    elif date.weekday() == 4:
-        return DISCO_GREETINGS[random.randint(0,len(DISCO_GREETINGS) - 1)]
-    else:
-        return GREETINGS[random.randint(0,len(GREETINGS) - 1)]
-
+bot_status = {'hasGreeted': False, 'isIdentifying': False, 'triggerCount': 0}
 config = {}
-
 
 with open('config.json', 'r') as f:
     config = json.load(f)
-
-config['isRunning'] = False
 
 # set up the bot
 bot = commands.Bot(
@@ -51,12 +34,6 @@ playlist = SongList(config['recordedSavePath'], config['channel'], datetime.date
 
 # set up recorder
 twitch_recorder = TwitchRecorder(config['botClientID'], config['botSecret'], config['channel'], config['recordedSavePath'])
-token_updated = twitch_recorder.authorize(config['botToken']['oauthToken'], config['botToken']['expirationDate'])
-
-# save new oauth token if fetched new one
-if token_updated:
-    with open('config.json', 'w') as f:
-        f.write(json.dumps(config, indent = 4))
 
 # set up music identifier
 music_identifier = Identifier(config['acrKey'], config['acrSecret'], config['acrHostUrl'])
@@ -65,13 +42,13 @@ music_identifier = Identifier(config['acrKey'], config['acrSecret'], config['acr
 @bot.event
 async def event_ready():
     'Called once when the bot goes online.'
-    global HAS_GREETED
+    global bot_status
 
     print(f"{config['botUsername']} is online!")
-    if HAS_GREETED is False:
+    if bot_status['hasGreeted'] is False:
         ws = bot._ws  # this is only needed to send messages within event_ready
-        await ws.send_privmsg(config['channel'], "{0} Type '!track' to identify the current song playing.".format(get_greeting(datetime.datetime.today())))
-        HAS_GREETED = True
+        await ws.send_privmsg(config['channel'], "{0} Type '!track' to identify the current song playing.".format(botreplys.get_greeting(datetime.datetime.today())))
+        bot_status['hasGreeted'] = True
 
 @bot.event
 async def event_message(ctx):
@@ -84,28 +61,30 @@ async def event_message(ctx):
     await bot.handle_commands(ctx)
     # await ctx.channel.send(ctx.content) # to send message within event_message
 
-
-
-@bot.command(name='majhelp', aliases=['bothelp'])
-async def majhelp(ctx):
-    await ctx.send('Type "!track" to identify the current song playing. "!last" for last song identified. "!setlist" to get all songs identified so far.')
-
 @bot.command(name='track', aliases=['playing', 'tune'])
 async def track(ctx):
     global config
+    global bot_status
 
-    if config['isRunning'] is True or twitch_recorder.is_recording or music_identifier.is_identifying:
+    if bot_status['isIdentifying'] is True or twitch_recorder.is_recording or music_identifier.is_identifying:
         print('already trying to identify!')
+        bot_status['triggerCount'] += 1
+
+        if bot_status['triggerCount'] >= 5:
+            bot_status['triggerCount'] = 0 # reset count so message sent every 5 times someone sends '!track' 
+            await ctx.send(botreplys.get_already_listening_reply())
+
         return
 
     if len(playlist.songs) > 0:
-        elapsedTime = datetime.datetime.now() - playlist.songs[-1].timestamp
-        if elapsedTime.total_seconds() < 90:
-            print("already identified a song less than 90 seconds ago ...")
-            await ctx.send(get_last_track_msg())
+        elapsedTime = datetime.datetime.now() - playlist.songs[-1].last_timestamp
+        if elapsedTime.total_seconds() < 60:
+            print("already identified a song less than 60 seconds ago ...")
+            await ctx.send(playlist.get_last_song_msg())
             return
 
-    config['isRunning'] = True
+    bot_status['isIdentifying'] = True
+    bot_status['triggerCount'] = 0
 
     try:
         file_path = await twitch_recorder.record(20)
@@ -126,58 +105,54 @@ async def track(ctx):
 
     except Exception as e:
         print(e)
+        twitch_recorder.is_recording = False
         file_path = None
 
-    if file_path is not None:
-        try:
-            response = music_identifier.identify(file_path)
-            info = music_identifier.get_song_info_from_response(response)
-        except Exception as e:
-            print(e)
-            info = None
-
-        if info is not None:
-            playlist.add(Song(info))
-            msg = ""
-            if info['multipleResults'] is True:
-                msg += "(I think) "
-            msg += "Currently playing: " + info['title'] + ' || Artist(s): ' + ', '.join(info['artists']) + ' || Album: ' + info['album']
-            print(msg)
-            await ctx.send(msg)
-        else:
-            msg = ""
-            if twitch_recorder.is_blocked:
-                msg = "I had trouble listening. Please try again ..."
-            else:
-                msg = "I can't tell what's playing..."
-                
-            await ctx.send(msg)
-            print("could not identify")
-    else:
+    if file_path is None or not os.path.exists(file_path):
         print("no file recorded")
+        bot_status['isIdentifying'] = False
+        await ctx.send(botreplys.get_trouble_listening_reply())
+        return
 
-    config['isRunning'] = False
+    try:
+        response = music_identifier.identify(file_path)
+        info = music_identifier.get_song_info_from_response(response)
+    except Exception as e:
+        print(e)
+        music_identifier.is_identifying = False
+        info = None
+
+    if info is None:
+        print("could not identify")
+        bot_status['isIdentifying'] = False
+
+        msg = botreplys.get_trouble_listening_reply() if twitch_recorder.is_blocked else botreplys.get_unknown_song_reply()
+        await ctx.send(msg)
+        return
+        
+    song = Song(info)
+    playlist.add(song)
+    msg = ""
+    if info['multipleResults'] is True:
+        msg += "(I think) "
+    msg += f"Currently playing: {song.title} || Artist(s): {', '.join(song.artists)}  || Album: {song.album}"
+    
+    print(msg)
+    bot_status['isIdentifying'] = False
+    await ctx.send(msg)
+
+
+@bot.command(name='majhelp', aliases=['bothelp'])
+async def majhelp(ctx):
+    await ctx.send('Type "!track" to identify the current song playing. "!last" for last song identified. "!setlist" to get all songs identified so far.')
 
 @bot.command(name="lastsong", aliases=["last"])
 async def lastsong(ctx):
+    # num_tracks = ctx.content.split()[1]
 
     if len(playlist.songs) > 0:
-        await ctx.send(get_last_track_msg())
-
-def get_last_track_msg():
-    if len(playlist.songs) > 0:
-        elapsedTime = datetime.datetime.now() - playlist.songs[-1].timestamp
-        mins,sec = divmod(elapsedTime.total_seconds(), 60)
-
-        msg = "The last track was identified "
-        if mins > 1:
-            msg += "{0} minutes ago".format(round(mins,0))
-        else:
-            msg += "{0} seconds ago".format(round(sec,0))
-
-        msg += " - {0}".format(playlist.songs[-1].formatted_str(include_timestamp=False))
-        return msg
-    return ""
+        print(playlist.get_last_song_msg())
+        await ctx.send(playlist.get_last_song_msg())
 
 
 @bot.command(name='setlist')
@@ -200,7 +175,14 @@ async def setlist(ctx):
         await asyncio.sleep(1.5 + random.random())
 
 if __name__ == "__main__":
-    print(get_greeting(datetime.datetime.today()))
+    print(botreplys.get_greeting(datetime.datetime.today()))
+
+    token_updated = twitch_recorder.authorize(config['botToken']['oauthToken'], config['botToken']['expirationDate'])
+
+    # save new oauth token if fetched new one
+    if token_updated:
+        with open('config.json', 'w') as f:
+            f.write(json.dumps(config, indent = 4))
 
     if twitch_recorder.check_user() is not None:
         bot.run()
