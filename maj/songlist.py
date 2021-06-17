@@ -29,17 +29,17 @@ class Song:
         return {'title': self.title, 'album': self.album, 'artists': self.artists, 'timestamp': self.timestamp.isoformat(), 'last_timestamp': self.last_timestamp.isoformat()}
 
     def formatted_str(self, include_timestamp=True):
-        msg = "({0} | ".format(self.title)
+        msg = "{0} ║ ".format(self.title)
         if len(self.artists) > 1:
             msg += "{0}".format(', '.join(self.artists))
         else:
             msg += "{0}".format(self.artists[0])
 
         if include_timestamp:
-            msg += " | {0} | timestamp: {1})".format(
+            msg += " ║ {0} ║ timestamp: {1}".format(
                 self.album, self.timestamp.strftime('%H:%M:%S'))
         else:
-            msg += " | {0})".format(self.album)
+            msg += " ║ {0}".format(self.album)
 
         return msg
 
@@ -100,7 +100,7 @@ class SongList:
             else:
                 msg += "{0} seconds ago".format(round(sec, 0))
 
-            msg += " - {0}".format(
+            msg += " --> {0}".format(
                 self.songs[-1].formatted_str(include_timestamp=False))
             return msg
 

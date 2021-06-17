@@ -59,7 +59,7 @@ async def event_message(ctx):
         return
 
     await bot.handle_commands(ctx)
-    # await ctx.channel.send(ctx.content) # to send message within event_message
+    # to send message within event_message: # await ctx.channel.send(ctx.content) # 
 
 @bot.command(name='track', aliases=['playing', 'tune'])
 async def track(ctx):
@@ -135,7 +135,7 @@ async def track(ctx):
     msg = ""
     if info['multipleResults'] is True:
         msg += "(I think) "
-    msg += f"Currently playing: {song.title} || Artist(s): {', '.join(song.artists)}  || Album: {song.album}"
+    msg += f"Currently playing: {song.title} ║ Artist(s): {', '.join(song.artists)}  ║ Album: {song.album}"
     
     print(msg)
     bot_status['isIdentifying'] = False
@@ -148,11 +148,36 @@ async def majhelp(ctx):
 
 @bot.command(name="lastsong", aliases=["last"])
 async def lastsong(ctx):
-    # num_tracks = ctx.content.split()[1]
 
-    if len(playlist.songs) > 0:
+    if len(playlist.songs) == 0:
+        return
+
+    chat_msgs = ctx.content.split(' ')
+    num_tracks = 1
+
+    if len(chat_msgs) > 1 and chat_msgs[1].isnumeric():
+        num_tracks = int(chat_msgs[1])
+        if num_tracks < 1 or num_tracks >= len(playlist.songs):
+            num_tracks = 1 # ignore any bad input and default it to last 1 track 
+
+
+    if num_tracks == 1:
         print(playlist.get_last_song_msg())
         await ctx.send(playlist.get_last_song_msg())
+    else:
+        messages = []
+        msg_reply = f"The last {num_tracks} tracks played (most recent first) --> "
+        for i in range(1, num_tracks + 1):
+            song_info = playlist.songs[-i].formatted_str(include_timestamp = False)
+            if len(msg_reply + song_info) >= 500:
+                messages.append(msg_reply)
+                msg_reply = ""
+            
+            msg_reply += song_info + ' ██   '
+        messages.append(msg_reply)
+
+        print(messages)
+        await send_message_batch(ctx, messages)
 
 
 @bot.command(name='setlist')
@@ -164,15 +189,19 @@ async def setlist(ctx):
             messages.append(msg)
             msg = ""
         
-        msg += song.formatted_str(include_timestamp=False) + ';-- '
+        msg += song.formatted_str(include_timestamp=False) + ' ██   '
     
     messages.append(msg)
 
     print(messages)
+    await send_message_batch(ctx, messages)
 
+
+async def send_message_batch(ctx, messages):
     for m in messages:
         await ctx.send(m)
         await asyncio.sleep(1.5 + random.random())
+
 
 if __name__ == "__main__":
     print(botreplys.get_greeting(datetime.datetime.today()))
