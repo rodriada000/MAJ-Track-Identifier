@@ -14,5 +14,9 @@
  },
  "enableVpnRotation": false,
  "vpnConfigFolders": [],
- "vpnUserPwdConfigPath": ""
+ "vpnUserPwdConfigPath": "",
+ "spotify": {
+    "clientID": "GetFromSpotifyDashboard",
+    "clientSecret": "GetFromSpotifyDashboard"
+} 
 }
