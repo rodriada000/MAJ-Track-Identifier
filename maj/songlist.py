@@ -29,7 +29,11 @@ class Song:
         return {'title': self.title, 'album': self.album, 'artists': self.artists, 'timestamp': self.timestamp.isoformat(), 'last_timestamp': self.last_timestamp.isoformat()}
 
     def formatted_str(self, include_timestamp=True):
-        msg = "{0} ║ ".format(self.title)
+        if '.' in self.title:
+            msg = '"{0}" ║ '.format(self.title)
+        else:
+            msg = "{0} ║ ".format(self.title)
+
         if len(self.artists) > 1:
             msg += "{0}".format(', '.join(self.artists))
         else:
@@ -42,6 +46,16 @@ class Song:
             msg += " ║ {0}".format(self.album)
 
         return msg
+
+    def get_last_identified_in_minutes(self):
+        elapsedTime = datetime.datetime.now() - self.last_timestamp
+        mins, sec = divmod(elapsedTime.total_seconds(), 60)
+
+        if mins > 1:
+            return "{0} minutes ago".format(round(mins, 0))
+        else:
+            return "{0} seconds ago".format(round(sec, 0))
+        return ""
 
 
 
@@ -91,15 +105,7 @@ class SongList:
 
     def get_last_song_msg(self):
         if len(self.songs) > 0:
-            elapsedTime = datetime.datetime.now() - self.songs[-1].last_timestamp
-            mins, sec = divmod(elapsedTime.total_seconds(), 60)
-
-            msg = "The last track was identified "
-            if mins > 1:
-                msg += "{0} minutes ago".format(round(mins, 0))
-            else:
-                msg += "{0} seconds ago".format(round(sec, 0))
-
+            msg = f"The last track was identified {self.songs[-1].get_last_identified_in_minutes()}"
             msg += " --> {0}".format(
                 self.songs[-1].formatted_str(include_timestamp=False))
             return msg
@@ -121,6 +127,12 @@ class SongList:
             write.writerow(["Timestamp", "Title", "Artist", "Album"])
             write.writerows(table)
 
+    def get_name_by_day(self, weekday):
+        names = ["Jazz Club Monday","","Soulful Wednesday","","Disco Friday"]
+        if weekday < 0 or weekday >= len(names):
+            return ""
+        return names[weekday]
+
 
 def demo_usage():
     s = SongList("F:\\twitch", "misc", datetime.datetime.today())
@@ -138,10 +150,11 @@ def print_setlist_tabular():
     from tabulate import tabulate
     setlist = SongList("F:\\twitch", "myanalogjournal_",
                        datetime.datetime.today())
-    setlist_start = datetime.datetime(2021,6,16,14,0) # 2 pm PST
+    setlist_start = datetime.datetime(2021,6,18,14,0) # 2 pm PST
 
     table = [[str(s.timestamp - setlist_start).split(".")[0], s.title,
               "; ".join(s.artists), s.album] for s in setlist.songs]
+    print(setlist.get_name_by_day(setlist_start.weekday))
     print(tabulate(table, headers=["Timestamp", "Title", "Artist", "Album"]))
 
 

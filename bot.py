@@ -4,14 +4,16 @@ import datetime
 import json
 import asyncio
 import random
+from time import sleep
 from twitchio.ext import commands
 from maj.identifier import Identifier
 from maj.twitchrecorder import TwitchRecorder
 from maj.songlist import Song,SongList
 from maj.vpnrotator import VpnRotator
 from maj.utils import botreplys
+from maj.utils.spotifyclient import SpotifyClient
 
-bot_status = {'hasGreeted': False, 'isIdentifying': False, 'triggerCount': 0}
+bot_status = {'hasGreeted': False, 'isIdentifying': False, 'triggerCount': 0, 'isSilenced': False}
 config = {}
 
 with open('config.json', 'r') as f:
@@ -46,9 +48,11 @@ async def event_ready():
 
     print(f"{config['botUsername']} is online!")
     if bot_status['hasGreeted'] is False:
-        ws = bot._ws  # this is only needed to send messages within event_ready
-        await ws.send_privmsg(config['channel'], "{0} Type '!track' to identify the current song playing.".format(botreplys.get_greeting(datetime.datetime.today())))
         bot_status['hasGreeted'] = True
+
+        if config['print_only'] is False:
+            ws = bot._ws  # this is only needed to send messages within event_ready
+            await ws.send_privmsg(config['channel'], "{0} Type '!track' to identify the current song playing.".format(botreplys.get_greeting(datetime.datetime.today())))
 
 @bot.event
 async def event_message(ctx):
@@ -72,7 +76,7 @@ async def track(ctx):
 
         if bot_status['triggerCount'] >= 5:
             bot_status['triggerCount'] = 0 # reset count so message sent every 5 times someone sends '!track' 
-            await ctx.send(botreplys.get_already_listening_reply())
+            await send_message(ctx, botreplys.get_already_listening_reply())
 
         return
 
@@ -80,7 +84,7 @@ async def track(ctx):
         elapsedTime = datetime.datetime.now() - playlist.songs[-1].last_timestamp
         if elapsedTime.total_seconds() < 60:
             print("already identified a song less than 60 seconds ago ...")
-            await ctx.send(playlist.get_last_song_msg())
+            await send_message(ctx, playlist.get_last_song_msg())
             return
 
     bot_status['isIdentifying'] = True
@@ -109,10 +113,8 @@ async def track(ctx):
         file_path = None
 
     if file_path is None or not os.path.exists(file_path):
-        print("no file recorded")
         bot_status['isIdentifying'] = False
-        await ctx.send(botreplys.get_trouble_listening_reply())
-        return
+        await send_message(ctx, botreplys.get_trouble_listening_reply(), force_quiet=bot_status['isSilenced'])
 
     try:
         response = music_identifier.identify(file_path)
@@ -123,11 +125,11 @@ async def track(ctx):
         info = None
 
     if info is None:
-        print("could not identify")
         bot_status['isIdentifying'] = False
 
         msg = botreplys.get_trouble_listening_reply() if twitch_recorder.is_blocked else botreplys.get_unknown_song_reply()
-        await ctx.send(msg)
+        await send_message(ctx, msg, force_quiet=bot_status['isSilenced'])
+        
         return
         
     song = Song(info)
@@ -135,16 +137,15 @@ async def track(ctx):
     msg = ""
     if info['multipleResults'] is True:
         msg += "(I think) "
-    msg += f"Currently playing: {song.title} ║ Artist(s): {', '.join(song.artists)}  ║ Album: {song.album}"
+    msg += f'Currently playing: "{song.title}" ║ Artist(s): {", ".join(song.artists)}  ║ Album: {song.album}'
     
-    print(msg)
     bot_status['isIdentifying'] = False
-    await ctx.send(msg)
+    await send_message(ctx, msg)
 
 
 @bot.command(name='majhelp', aliases=['bothelp'])
 async def majhelp(ctx):
-    await ctx.send('Type "!track" to identify the current song playing. "!last" for last song identified. "!setlist" to get all songs identified so far.')
+    await send_message(ctx, 'Type "!track" to identify the current song playing. "!last" for last song identified or "!last X" to get last X songs identified.')
 
 @bot.command(name="lastsong", aliases=["last"])
 async def lastsong(ctx):
@@ -163,7 +164,7 @@ async def lastsong(ctx):
 
     if num_tracks == 1:
         print(playlist.get_last_song_msg())
-        await ctx.send(playlist.get_last_song_msg())
+        await send_message(ctx, playlist.get_last_song_msg())
     else:
         messages = []
         msg_reply = f"The last {num_tracks} tracks played (most recent first) --> "
@@ -178,7 +179,6 @@ async def lastsong(ctx):
 
         print(messages)
         await send_message_batch(ctx, messages)
-
 
 @bot.command(name='setlist')
 async def setlist(ctx):
@@ -196,15 +196,23 @@ async def setlist(ctx):
     print(messages)
     await send_message_batch(ctx, messages)
 
+@bot.command(name='shutup')
+async def shutup(ctx):
+    global bot_status
+    bot_status['isSilenced'] = True
 
 async def send_message_batch(ctx, messages):
     for m in messages:
-        await ctx.send(m)
+        await send_message(ctx, m)
         await asyncio.sleep(1.5 + random.random())
 
+async def send_message(ctx, message, force_quiet=False):
+    print(message)
+    if config['print_only'] or force_quiet:
+        return
+    await ctx.send(message)    
 
 if __name__ == "__main__":
-    print(botreplys.get_greeting(datetime.datetime.today()))
 
     token_updated = twitch_recorder.authorize(config['botToken']['oauthToken'], config['botToken']['expirationDate'])
 
@@ -213,8 +221,23 @@ if __name__ == "__main__":
         with open('config.json', 'w') as f:
             f.write(json.dumps(config, indent = 4))
 
-    if twitch_recorder.check_user() is not None:
-        bot.run()
+    while twitch_recorder.check_user() is None:
+        print('waiting for channel to be online ...')
+        sleep(60)
+
+    # blocking call to have twitch bot run
+    bot.run()
 
     if vpn.is_connected:
         vpn.disconnect()
+
+    # save setlist to a spotify playlist if channel offline
+    if twitch_recorder.check_user() is None and config.get('spotify') is not None:
+        spotify_client = SpotifyClient(config['spotify']['clientID'], config['spotify']['clientSecret'], scopes="playlist-read-collaborative playlist-modify-public playlist-modify-private playlist-read-private")
+        
+        day_of_week = playlist.setlist_date.weekday()
+        prefix = f"MAJ {playlist.get_name_by_day(day_of_week)} Setlist"
+
+        print('generating spotify playlist ...')
+        spotify_playlist = spotify_client.create_setlist_playlist(playlist, name_prefix=prefix)
+        print(spotify_playlist)

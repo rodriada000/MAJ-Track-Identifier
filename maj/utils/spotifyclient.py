@@ -1,6 +1,7 @@
 from spotipy import oauth2, Spotify
 import json
 import datetime
+import time
 from maj.songlist import SongList,Song
 
 
@@ -68,6 +69,8 @@ class SpotifyClient:
         if results['tracks'] and len(results['tracks']['items']) > 0:
             track = results['tracks']['items'][0]
 
+            print([t['artists'] for t in results['tracks']['items']])
+
             return {
                 'id': track['id'],
                 'uri': track['uri'],
@@ -99,6 +102,7 @@ class SpotifyClient:
             result = self.search_tracks(title=song.title, artist=song.artists[0]) # search by album too? search for each artist?
             if result is not None:
                 tracks.append(result)
+            time.sleep(1) # add a delay between each search so requests arent rapid
 
         if len(tracks) == 0:
             return # no songs found that can be added to a playlist
@@ -117,21 +121,21 @@ def demo_search_usage():
         config = json.load(f)
 
     client = SpotifyClient(config['spotify']['clientID'], config['spotify']['clientSecret'], scopes="playlist-read-collaborative playlist-modify-public playlist-modify-private playlist-read-private")
-    track = client.search_tracks(title="Istanbul Twilight", artist="The Brooklyn Funk Essentials")
+    track = client.search_tracks(title="Try It Out", artist="Simon Dunmore")
 
     print(track)
 
 def demo_create_from_setlist():
     config = {}
 
-    setlist_start = datetime.datetime(2021,6,16,14,0) # 2 pm PST
+    setlist_start = datetime.datetime(2021,6,18,14,0) # 2 pm PST
     setlist = SongList("F:\\twitch", "myanalogjournal_", setlist_start)
 
     with open('.\\config.json') as f:
         config = json.load(f)
 
     client = SpotifyClient(config['spotify']['clientID'], config['spotify']['clientSecret'], scopes="playlist-read-collaborative playlist-modify-public playlist-modify-private playlist-read-private")
-    playlist = client.create_setlist_playlist(setlist)
+    playlist = client.create_setlist_playlist(setlist, name_prefix='MAJ Disco Friday Setlist')
     
     print(playlist)
 

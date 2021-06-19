@@ -9,10 +9,11 @@ setup(
     author_email='rodriada000@gmail.com',
     packages=find_packages(),
     install_requires=[
-        'streamlink',
+        'asyncio',
         'requests',
-        'twitchio',
+        'spotipy'
+        'streamlink',
         'tabulate',
-        'asyncio'
+        'twitchio'
     ]
 )

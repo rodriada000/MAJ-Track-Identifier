@@ -9,7 +9,9 @@ GREETINGS = ["/me has landed!",
 DISCO_GREETINGS = ["/me would like to welcome you to Disco Friday!",
                    "Who's ready for Disco Friday?! this bot is ready!",
                    "/me is ready to shake it for Disco Friday!",
-                   "/me learned how to spell D-I-S-C-O F-R-I-D-A-Y !"]
+                   "/me learned how to spell D-I-S-C-O F-R-I-D-A-Y !",
+                   "/me is ready to boogy down for Disco Friday!",
+                   "/me wants to party for Disco Friday!"]
 
 JAZZ_GREETINGS = ["/me would like to welcome you to Monday Jazz Club!",
                   "Who's ready for a relaxing Monday Jazz Club? this bot is.",
@@ -23,11 +25,14 @@ SOUL_GREETINGS = ["/me would like to welcome you to Soulful Wednesday!",
 UNKNOWN_REPLYS = ["I can't tell what's playing...",
                   "I'm not too sure what's playing right now...",
                   "beep boop. I do not know this song...",
-                  "I have no idea what song is playing..."]
+                  "I have no idea what song is playing...",
+                  "Can not identify the current song...",
+                  "I don't think I know what song this is. try again?"]
 
 CANT_RECORD_REPLYS = ["I had trouble listening. Please try again ...",
                       "I didn't get that. Please try again ...",
-                      "Could you try again please? I'm not sure I heard that."]
+                      "Could you try again please? I'm not sure I heard that.",
+                      "Failed to record the stream. Please try again ..."]
 
 ALREADY_IDENTIFYING_REPLYS = ["Gimme a second, I'm still trying to listen.",
                               "I'm already trying to identify!"]
@@ -35,11 +40,11 @@ ALREADY_IDENTIFYING_REPLYS = ["Gimme a second, I'm still trying to listen.",
 
 def get_greeting(date):
     if date.weekday() == 0:
-        return JAZZ_GREETINGS[random.randint(0, len(JAZZ_GREETINGS) - 1)]
+        return (JAZZ_GREETINGS + GREETINGS)[random.randint(0, len(JAZZ_GREETINGS + GREETINGS) - 1)]
     elif date.weekday() == 2:
-        return SOUL_GREETINGS[random.randint(0, len(SOUL_GREETINGS) - 1)]
+        return (SOUL_GREETINGS + GREETINGS)[random.randint(0, len(SOUL_GREETINGS + GREETINGS) - 1)]
     elif date.weekday() == 4:
-        return DISCO_GREETINGS[random.randint(0, len(DISCO_GREETINGS) - 1)]
+        return (DISCO_GREETINGS + GREETINGS)[random.randint(0, len(DISCO_GREETINGS + GREETINGS) - 1)]
     else:
         return GREETINGS[random.randint(0, len(GREETINGS) - 1)]
 
