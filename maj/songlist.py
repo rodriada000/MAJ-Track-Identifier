@@ -148,13 +148,14 @@ def demo_usage():
 
 def print_setlist_tabular():
     from tabulate import tabulate
+    today = datetime.date.today()
     setlist = SongList("F:\\twitch", "myanalogjournal_",
-                       datetime.datetime.today())
-    setlist_start = datetime.datetime(2021,6,18,14,0) # 2 pm PST
+                       today)
+    setlist_start = datetime.datetime(today.year, today.month, today.day,14,0) # 2 pm PST
 
     table = [[str(s.timestamp - setlist_start).split(".")[0], s.title,
               "; ".join(s.artists), s.album] for s in setlist.songs]
-    print(setlist.get_name_by_day(setlist_start.weekday))
+    print(setlist.get_name_by_day(setlist_start.weekday()))
     print(tabulate(table, headers=["Timestamp", "Title", "Artist", "Album"]))
 
 

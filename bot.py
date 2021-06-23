@@ -13,7 +13,7 @@ from maj.vpnrotator import VpnRotator
 from maj.utils import botreplys
 from maj.utils.spotifyclient import SpotifyClient
 
-bot_status = {'hasGreeted': False, 'isIdentifying': False, 'triggerCount': 0, 'isSilenced': False}
+bot_status = {'hasGreeted': False, 'isIdentifying': False, 'triggerCount': 0, 'isSilenced': True}
 config = {}
 
 with open('config.json', 'r') as f:
@@ -65,7 +65,7 @@ async def event_message(ctx):
     await bot.handle_commands(ctx)
     # to send message within event_message: # await ctx.channel.send(ctx.content) # 
 
-@bot.command(name='track', aliases=['playing', 'tune'])
+@bot.command(name='track', aliases=['playing', 'tune', 'TRACK'])
 async def track(ctx):
     global config
     global bot_status
@@ -86,6 +86,14 @@ async def track(ctx):
             print("already identified a song less than 60 seconds ago ...")
             await send_message(ctx, playlist.get_last_song_msg())
             return
+
+    found = False
+    while found is False:
+        found = await try_identify(ctx)
+        await asyncio.sleep(1)
+
+async def try_identify(ctx):
+    global bot_status
 
     bot_status['isIdentifying'] = True
     bot_status['triggerCount'] = 0
@@ -115,6 +123,7 @@ async def track(ctx):
     if file_path is None or not os.path.exists(file_path):
         bot_status['isIdentifying'] = False
         await send_message(ctx, botreplys.get_trouble_listening_reply(), force_quiet=bot_status['isSilenced'])
+        return False
 
     try:
         response = music_identifier.identify(file_path)
@@ -126,11 +135,9 @@ async def track(ctx):
 
     if info is None:
         bot_status['isIdentifying'] = False
-
         msg = botreplys.get_trouble_listening_reply() if twitch_recorder.is_blocked else botreplys.get_unknown_song_reply()
         await send_message(ctx, msg, force_quiet=bot_status['isSilenced'])
-        
-        return
+        return False
         
     song = Song(info)
     playlist.add(song)
@@ -141,6 +148,7 @@ async def track(ctx):
     
     bot_status['isIdentifying'] = False
     await send_message(ctx, msg)
+    return True
 
 
 @bot.command(name='majhelp', aliases=['bothelp'])
@@ -170,36 +178,40 @@ async def lastsong(ctx):
         msg_reply = f"The last {num_tracks} tracks played (most recent first) --> "
         for i in range(1, num_tracks + 1):
             song_info = playlist.songs[-i].formatted_str(include_timestamp = False)
-            if len(msg_reply + song_info) >= 500:
+            if len(msg_reply + song_info + f' @ {playlist.songs[-i].get_last_identified_in_minutes()}  ██   ') >= 500:
                 messages.append(msg_reply)
                 msg_reply = ""
             
-            msg_reply += song_info + ' ██   '
+            msg_reply += song_info + f' @ {playlist.songs[-i].get_last_identified_in_minutes()}  ██   '
         messages.append(msg_reply)
 
-        print(messages)
         await send_message_batch(ctx, messages)
 
 @bot.command(name='setlist')
 async def setlist(ctx):
     msg = "(Title | Artists | Album) --> "
     messages = []
+    seperator = ' ██   '
     for song in playlist.songs:
-        if len(msg + song.formatted_str(include_timestamp=False)) >= 500:
+        if len(msg + song.formatted_str(include_timestamp=False) + seperator) >= 500:
             messages.append(msg)
             msg = ""
         
-        msg += song.formatted_str(include_timestamp=False) + ' ██   '
+        msg += song.formatted_str(include_timestamp=False) + seperator
     
     messages.append(msg)
 
-    print(messages)
     await send_message_batch(ctx, messages)
 
-@bot.command(name='shutup')
-async def shutup(ctx):
+@bot.command(name='quiet')
+async def quiet(ctx):
     global bot_status
     bot_status['isSilenced'] = True
+
+    chat_msgs = ctx.content.split(' ')
+
+    if len(chat_msgs) > 1 and chat_msgs[1] == "off":
+        bot_status['isSilenced'] = False
 
 async def send_message_batch(ctx, messages):
     for m in messages:
@@ -221,12 +233,16 @@ if __name__ == "__main__":
         with open('config.json', 'w') as f:
             f.write(json.dumps(config, indent = 4))
 
-    while twitch_recorder.check_user() is None:
-        print('waiting for channel to be online ...')
-        sleep(60)
+    try:
+        while twitch_recorder.check_user() is None:
+            print('waiting for channel to be online ...')
+            sleep(60)
+    except KeyboardInterrupt:
+        pass
 
     # blocking call to have twitch bot run
-    bot.run()
+    if twitch_recorder.check_user() is not None:
+        bot.run()
 
     if vpn.is_connected:
         vpn.disconnect()
