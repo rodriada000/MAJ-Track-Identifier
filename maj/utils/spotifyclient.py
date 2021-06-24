@@ -135,9 +135,9 @@ def demo_create_from_setlist():
         config = json.load(f)
 
     client = SpotifyClient(config['spotify']['clientID'], config['spotify']['clientSecret'], scopes="playlist-read-collaborative playlist-modify-public playlist-modify-private playlist-read-private")
-    playlist = client.create_setlist_playlist(setlist, name_prefix='MAJ Disco Friday Setlist')
+    playlist = client.create_setlist_playlist(setlist, name_prefix='TEST Setlist')
     
-    print(playlist)
+    print(playlist['external_urls']['spotify'])
 
 # demo_search_usage()
 # demo_create_from_setlist()

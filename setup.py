@@ -10,6 +10,8 @@ setup(
     packages=find_packages(),
     install_requires=[
         'asyncio',
+        'discord.py',
+        'imgkit'
         'requests',
         'spotipy'
         'streamlink',

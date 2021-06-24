@@ -1,4 +1,5 @@
 {
+    "print_only": false,
     "botIrcToken": "oauth:getthisfromhere",
     "botUsername": "majmusicbot",
     "botClientID": "getThisFromTwitchDevConsole",
@@ -19,5 +20,9 @@
         "clientID": "GetFromSpotifyDashboard",
         "clientSecret": "GetFromSpotifyDashboard"
     },
-    "print_only": false
+    "discord": {
+        "botToken": "getThisFromDiscordAppDashboard",
+        "guildName": "My Analog Journal's server",
+        "channelName": "livestream"
+    }
 }

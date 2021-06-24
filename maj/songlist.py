@@ -2,6 +2,8 @@ import datetime
 import os
 import json
 import csv
+import imgkit
+from tabulate import tabulate
 
 
 class Song:
@@ -133,6 +135,25 @@ class SongList:
             return ""
         return names[weekday]
 
+    def save_setlist_png(self, output_path='setlist.png'):
+
+        setlist_start = datetime.datetime(self.setlist_date.year, self.setlist_date.month, self.setlist_date.day, 14, 0) # 2 pm PST
+
+        table = [[str(s.timestamp - setlist_start).split(".")[0], s.title,
+                "; ".join(s.artists), s.album] for s in self.songs]
+
+        html_path = output_path.replace(".png", ".html")
+        with open(html_path, 'w', encoding='utf-8') as f:
+            f.write(f"<html><head>{self.get_name_by_day(self.setlist_date.weekday())} {self.setlist_date.strftime('%Y-%m-%d')}</head><body>")
+            f.write(tabulate(table, headers=["Timestamp", "Title", "Artist", "Album"], tablefmt='html'))
+            f.write("</body></html>")
+
+        options = {
+            'format': 'png',
+            'encoding': "UTF-8"
+        }
+        imgkit.from_file(html_path, output_path, options=options)
+
 
 def demo_usage():
     s = SongList("F:\\twitch", "misc", datetime.datetime.today())
@@ -164,8 +185,11 @@ def demo_csv_save():
                        datetime.datetime.today())
     setlist.save_setlist_csv()
 
+def demo_png_save():
+    setlist = SongList("F:\\twitch", "myanalogjournal_",
+                       datetime.datetime(2021,6,23))
+    setlist.save_setlist_png()
 
-# print_setlist_csv()
-# demo_usage()
-# demo_csv_save()
-# print_setlist_tabular()
+
+# if __name__ == "__main__":
+#     demo_png_save()
