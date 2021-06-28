@@ -1,13 +1,7 @@
-import os
-import pathlib
 import datetime
 import json
 import asyncio
-import random
-from time import sleep
-from twitchio.ext import commands
 from maj.songlist import Song,SongList
-from maj.vpnrotator import VpnRotator
 from maj.discordbot import MajBotClient
 from maj.utils.spotifyclient import SpotifyClient
 
@@ -17,24 +11,24 @@ config = {}
 with open('config.json', 'r') as f:
     config = json.load(f)
 
-# set up list to cache songs (will load from file if exists)
-playlist = SongList(config['recordedSavePath'], config['channel'], datetime.datetime.today())
-
 
 
 if __name__ == "__main__":
 
+    loop = asyncio.get_event_loop()        
+    playlist = SongList(config['recordedSavePath'], config['channel'], datetime.datetime.today())
+
     day_of_week = playlist.setlist_date.weekday()
     spotify_playlist = None
 
-    # save setlist to a spotify playlist if channel offline
+    # save setlist to a spotify playlist
     if config.get('spotify') is not None:
         spotify_client = SpotifyClient(config['spotify']['clientID'], config['spotify']['clientSecret'], scopes="playlist-read-collaborative playlist-modify-public playlist-modify-private playlist-read-private")
         
         prefix = f"MAJ {playlist.get_name_by_day(day_of_week)} Setlist"
 
         print('generating spotify playlist ...')
-        spotify_playlist = spotify_client.create_setlist_playlist(playlist, name_prefix=prefix)
+        spotify_playlist = spotify_client.create_setlist_playlist(playlist, name_prefix=prefix, is_collab=True)
         print(spotify_playlist)
 
     # post spotify playlist and image of playlist to discord

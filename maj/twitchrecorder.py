@@ -105,7 +105,7 @@ class TwitchRecorder:
         cmds = ["streamlink", "twitch.tv/" + self.username, self.quality, "-o", recorded_filename, "--http-header", "Authorization=Bearer " + self.oauth_token, "--http-header", "Client-Id=" + self.client_id, "--http-header", "Origin=https://www.twitch.tv"]
         p = subprocess.Popen(cmds, shell=False, stdin=None, stdout=None, stderr=None, close_fds=True)
         
-        sleep_time = 5 + length # add 5 for the initial startup of the process and loading the stream
+        sleep_time = 8 + length # add 5 for the initial startup of the process and loading the stream
         slept = 0
         last_size = 0
 

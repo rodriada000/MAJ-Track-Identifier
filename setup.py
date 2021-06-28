@@ -11,9 +11,9 @@ setup(
     install_requires=[
         'asyncio',
         'discord.py',
-        'imgkit'
+        'imgkit',
         'requests',
-        'spotipy'
+        'spotipy',
         'streamlink',
         'tabulate',
         'twitchio'

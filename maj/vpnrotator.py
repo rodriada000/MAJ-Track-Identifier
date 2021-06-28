@@ -27,6 +27,7 @@ class VpnRotator:
         if self.is_connected is False:
             print("connecting to {0} ...".format(ovpn_path))
             cmds = ["openvpn", "--config", ovpn_path, "--auth-user-pass", self.conf_path]
+            print(" ".join(cmds))
             self.vpn_proc = subprocess.Popen(cmds, shell=False, stdin=None, stdout=None, stderr=None, close_fds=True, creationflags=DETACHED_PROCESS)
             self.is_connected = True
 
@@ -62,7 +63,7 @@ class VpnRotator:
 
 
 def demo_usage():
-    v = VpnRotator(["C:\\Users\\Adam\\OpenVPN\\config"], "C:\\Users\\Adam\\OpenVPN\\config\\userpwd.conf")
+    v = VpnRotator(["C:\\Users\\Adica\\OpenVPN\\config"], "C:\\Users\\Adica\\OpenVPN\\config\\userpwd.conf")
     v.get_all_files()
     print(v.files)
     print(v.used_files)
@@ -85,4 +86,4 @@ def demo_usage():
         v.disconnect()
 
 # if __name__ == "__main__":
-    # demo_usage()
+#     demo_usage()
