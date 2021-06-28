@@ -64,7 +64,7 @@ async def event_message(ctx):
     await bot.handle_commands(ctx)
     # to send message within event_message: # await ctx.channel.send(ctx.content) # 
 
-@bot.command(name='track', aliases=['playing', 'tune', 'TRACK'])
+@bot.command(name='track', aliases=['playing', 'tune', 'TRACK', 'thong'])
 async def track(ctx):
     global config
     global bot_status
@@ -87,9 +87,11 @@ async def track(ctx):
             return
 
     found = False
-    while found is False:
+    trys = 0
+    while found is False and trys < 10:
         found = await try_identify(ctx)
-        await asyncio.sleep(1)
+        await asyncio.sleep(5)
+        trys += 1
 
 async def try_identify(ctx):
     global bot_status
