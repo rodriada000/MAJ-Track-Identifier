@@ -28,7 +28,7 @@ if __name__ == "__main__":
         prefix = f"MAJ {playlist.get_name_by_day(day_of_week)} Setlist"
 
         print('generating spotify playlist ...')
-        spotify_playlist = spotify_client.create_setlist_playlist(playlist, name_prefix=prefix, is_collab=True)
+        spotify_playlist = spotify_client.create_setlist_playlist(playlist, name_prefix=prefix)
         print(spotify_playlist)
 
     # post spotify playlist and image of playlist to discord
