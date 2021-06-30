@@ -4,7 +4,7 @@ import json
 import csv
 import imgkit
 from tabulate import tabulate
-
+from maj.utils.botreplys import get_stream_name_by_day
 
 class Song:
     def __init__(self, info):
@@ -30,7 +30,7 @@ class Song:
     def json(self):
         return {'title': self.title, 'album': self.album, 'artists': self.artists, 'timestamp': self.timestamp.isoformat(), 'last_timestamp': self.last_timestamp.isoformat()}
 
-    def formatted_str(self, include_timestamp=True):
+    def formatted_str(self, include_timestamp=False):
         if '.' in self.title:
             msg = '"{0}" ║ '.format(self.title)
         else:
@@ -102,49 +102,35 @@ class SongList:
         self.songs.append(song)
         self.save_to_file()
 
-    def get_songs_str(self):
-        return "; ".join([s.formatted_str() for s in self.songs])
-
     def get_last_song_msg(self):
         if len(self.songs) > 0:
             msg = f"The last track was identified {self.songs[-1].get_last_identified_in_minutes()}"
             msg += " --> {0}".format(
-                self.songs[-1].formatted_str(include_timestamp=False))
+                self.songs[-1].formatted_str())
             return msg
 
         return ""
 
     def save_setlist_csv(self, file_prefix="setlist"):
-        setlist_start = datetime.datetime(self.setlist_date.year, self.setlist_date.month, self.setlist_date.day, 14, 0) # 2 pm PST
 
-        table = [[str(s.timestamp - setlist_start).split(".")[0], s.title,
-                "; ".join(s.artists), s.album] for s in self.songs]
-
+        table = self.get_songs_tabular()
         csv_path = self.save_path + '\\' + file_prefix + self.setlist_date.strftime('_%Y-%m-%d.csv')
+
         with open(csv_path, 'w', newline='', encoding='utf-8') as f:
-            
-            # using csv.writer method from CSV package
             write = csv.writer(f)
             
             write.writerow(["Timestamp", "Title", "Artist", "Album"])
             write.writerows(table)
 
-    def get_name_by_day(self, weekday):
-        names = ["Jazz Club Monday","","Soulful Wednesday","","Disco Friday"]
-        if weekday < 0 or weekday >= len(names):
-            return ""
-        return names[weekday]
+        return csv_path
 
     def save_setlist_png(self, output_path='setlist.png'):
 
-        setlist_start = datetime.datetime(self.setlist_date.year, self.setlist_date.month, self.setlist_date.day, 14, 0) # 2 pm PST
-
-        table = [[str(s.timestamp - setlist_start).split(".")[0], s.title,
-                "; ".join(s.artists), s.album] for s in self.songs]
-
+        table = self.get_songs_tabular()
         html_path = output_path.replace(".png", ".html")
+
         with open(html_path, 'w', encoding='utf-8') as f:
-            f.write(f"<html><head>{self.get_name_by_day(self.setlist_date.weekday())} {self.setlist_date.strftime('%Y-%m-%d')}</head><body>")
+            f.write(f"<html><head>{get_stream_name_by_day(self.setlist_date.weekday())} {self.setlist_date.strftime('%Y-%m-%d')}</head><body>")
             f.write(tabulate(table, headers=["Timestamp", "Title", "Artist", "Album"], tablefmt='html'))
             f.write("</body></html>")
 
@@ -154,36 +140,44 @@ class SongList:
         }
         imgkit.from_file(html_path, output_path, options=options)
 
+    def get_songs_tabular(self):
+        setlist_start = datetime.datetime(self.setlist_date.year, self.setlist_date.month, self.setlist_date.day, 14, 0) # 2 pm PST
+        return [[str(s.timestamp - setlist_start).split(".")[0], s.title, "; ".join(s.artists), s.album] for s in self.songs]
+
+
+
 
 def demo_usage():
-    s = SongList("F:\\twitch", "misc", datetime.datetime.today())
+    today = datetime.datetime.today()
+    s = SongList("F:\\twitch", "misc", today)
+    print(get_stream_name_by_day(today.weekday()))
     print(s.get_last_song_msg())
-    print(s.get_songs_str())
     print('---')
     s.add(Song({'title': 'a', 'artists': ['1', '2'], 'album': 'z'}))
     s.add(Song({'title': 'a', 'artists': ['1', '2'], 'album': 'z'}))
     s.add(Song({'title': 'b', 'artists': ['3'], 'album': 'x'}))
     s.add(Song({'title': 'c', 'artists': ['4'], 'album': 'y'}))
-    print(s.get_songs_str())
-
+    p = s.save_setlist_csv('testlist')
+    print(s.get_songs_tabular())
+    print(p)
+    print(str(s))
 
 def print_setlist_tabular():
     from tabulate import tabulate
     today = datetime.date.today()
     setlist = SongList("F:\\twitch", "myanalogjournal_",
                        today)
-    setlist_start = datetime.datetime(today.year, today.month, today.day,14,0) # 2 pm PST
 
-    table = [[str(s.timestamp - setlist_start).split(".")[0], s.title,
-              "; ".join(s.artists), s.album] for s in setlist.songs]
-    print(setlist.get_name_by_day(setlist_start.weekday()))
+    table = setlist.get_songs_tabular()
+    print(get_stream_name_by_day(today.weekday()))
     print(tabulate(table, headers=["Timestamp", "Title", "Artist", "Album"]))
 
 
 def demo_csv_save():
     setlist = SongList("F:\\twitch", "myanalogjournal_",
-                       datetime.datetime.today())
-    setlist.save_setlist_csv()
+                       datetime.datetime(2021,6,23))
+    p = setlist.save_setlist_csv()
+    print(p)
 
 def demo_png_save():
     setlist = SongList("F:\\twitch", "myanalogjournal_",
@@ -192,4 +186,6 @@ def demo_png_save():
 
 
 # if __name__ == "__main__":
-#     demo_png_save()
+    # demo_png_save()
+    # demo_usage()
+    # demo_csv_save()

@@ -35,6 +35,9 @@ CANT_RECORD_REPLYS = ["I had trouble listening. Please try again ...",
                       "Failed to record the stream. Please try again ..."]
 
 ALREADY_IDENTIFYING_REPLYS = ["Gimme a second, I'm still trying to listen.",
+                              "Hold on... I'm trying here!",
+                              "Have faith I'm still trying ...",
+                              "I'll figure it out one day ..."
                               "I'm already trying to identify!"]
 
 
@@ -59,3 +62,10 @@ def get_trouble_listening_reply():
 
 def get_already_listening_reply():
     return ALREADY_IDENTIFYING_REPLYS[random.randint(0, len(ALREADY_IDENTIFYING_REPLYS) - 1)]
+
+
+def get_stream_name_by_day(weekday):
+    names = ["Jazz Club Monday", "", "Soulful Wednesday", "", "Disco Friday"]
+    if weekday < 0 or weekday >= len(names):
+        return ""
+    return names[weekday]

@@ -40,13 +40,16 @@ class SpotifyClient:
 
         self.token = self.token_info['access_token']
 
+    def strip_keywords(self, str_to_strip):
+        for w in IGNORE_WORDS:
+            str_to_strip = str_to_strip.replace(w, '')
+        return str_to_strip
+
     def search_tracks(self, title=None, artist=None, album=None):
         query = ''
 
         if title is not None:
-            for w in IGNORE_WORDS:
-                title = title.replace(w, '')
-            query += f'track:"{title}"+'
+            query += f'track:"{self.strip_keywords(title)}"+'
                 
         if artist is not None:
             query += f'artist:"{artist}"+'
@@ -57,20 +60,24 @@ class SpotifyClient:
         query = query[:-1]
 
         results = self.sp.search(query, limit=3, offset=0, type='track')
+        track = None
 
         if results['tracks'] is None or len(results['tracks']['items']) == 0:
             if artist is None:
                 return None # nothing found
             
             # try searching with only title if artist was passed in
-            results = self.sp.search(f'track:"{title}"', limit=3, offset=0, type='track')
+            results = self.sp.search(self.strip_keywords(title), limit=10, offset=0, type='track')
 
-
-        if results['tracks'] and len(results['tracks']['items']) > 0:
+            # loop through results to see if artists matches any results
+            for r in results['tracks']['items']:
+                if artist.lower() in [a['name'].lower() for a in r['artists']]:
+                    track = r
+                    break
+        else:
             track = results['tracks']['items'][0]
 
-            print([t['artists'] for t in results['tracks']['items']])
-
+        if track is not None:
             return {
                 'id': track['id'],
                 'uri': track['uri'],
@@ -94,23 +101,26 @@ class SpotifyClient:
         else:
             return None
 
-    def create_setlist_playlist(self, setlist, name_prefix='MAJ Setlist', is_public=True, is_collab=False):
+    def create_setlist_playlist(self, setlist, name_prefix='MAJ Setlist', is_public=True, is_collab=False, verbose=False):
         playlist_name = f'{name_prefix} {setlist.setlist_date.strftime("%Y-%m-%d")}'
         tracks = []
 
         for song in setlist.songs:
+            if verbose:
+                print(f"searching for {song.title} ...")
+
             result = self.search_tracks(title=song.title, artist=song.artists[0]) # search by album too? search for each artist?
             if result is not None:
                 tracks.append(result)
             time.sleep(1) # add a delay between each search so requests arent rapid
 
         if len(tracks) == 0:
-            return # no songs found that can be added to a playlist
+            return None, 0 # no songs found that can be added to a playlist
 
         playlist = self.create_playlist(playlist_name, "Automatically generated from python - MAJ Music bot", is_public, is_collab)
         self.add_track_to_playlist(playlist['id'], [t['id'] for t in tracks])
 
-        return playlist
+        return playlist, len(tracks)
 
 
 
@@ -135,9 +145,12 @@ def demo_create_from_setlist():
         config = json.load(f)
 
     client = SpotifyClient(config['spotify']['clientID'], config['spotify']['clientSecret'], scopes="playlist-read-collaborative playlist-modify-public playlist-modify-private playlist-read-private")
-    playlist = client.create_setlist_playlist(setlist, name_prefix='TEST Setlist')
+    playlist, num_added = client.create_setlist_playlist(setlist, name_prefix='TEST Setlist', is_public=False, is_collab=True, verbose=True)
     
+    print('----')
     print(playlist['external_urls']['spotify'])
+    print(f"...Found {num_added} of {len(setlist.songs)} songs on Spotify.")
 
-# demo_search_usage()
-# demo_create_from_setlist()
+# if __name__ == "__main__":
+    #demo_search_usage()
+    # demo_create_from_setlist()

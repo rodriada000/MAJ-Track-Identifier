@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='MAJ-Track-Identifier',
-    version='0.0.1',
+    version='1.0.0',
     description='twitch live stream music identifier',
     url='https://github.com/rodriada000/MAJ-Track-Identifier',
     author='Adam Rodriguez',

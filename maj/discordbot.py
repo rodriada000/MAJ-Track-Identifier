@@ -47,7 +47,7 @@ class MajBotClient(discord.Client):
         except Exception as e:
             pass 
 
-    async def send_message(self, message, filename=None):
+    async def send_message(self, message, filepath=None, filename=None):
 
         await self.init_login()
         is_ready = await self.init_channel()
@@ -56,11 +56,14 @@ class MajBotClient(discord.Client):
             print("could not get channel.")
             return
 
-        if filename is None:
+        if filepath is None:
             await self.channel.send(message)
         else:
-            with open(filename, 'rb') as fp:
-                await self.channel.send(content=message, file=discord.File(fp, 'setlist.png'))
+            if filename is None:
+                filename = filepath
+
+            with open(filepath, 'rb') as fp:
+                await self.channel.send(content=message, file=discord.File(fp, filename))
 
         self.close_client()
 

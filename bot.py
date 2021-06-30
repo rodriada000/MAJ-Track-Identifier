@@ -92,6 +92,9 @@ async def track(ctx):
         found = await try_identify(ctx)
         await asyncio.sleep(5)
         trys += 1
+    
+    if not found:
+        print('exceeded number of retrys ...')
 
 async def try_identify(ctx):
     global bot_status
@@ -178,7 +181,7 @@ async def lastsong(ctx):
         messages = []
         msg_reply = f"The last {num_tracks} tracks played (most recent first) --> "
         for i in range(1, num_tracks + 1):
-            song_info = playlist.songs[-i].formatted_str(include_timestamp = False)
+            song_info = playlist.songs[-i].formatted_str()
             if len(msg_reply + song_info + f' @ {playlist.songs[-i].get_last_identified_in_minutes()}  ██   ') >= 500:
                 messages.append(msg_reply)
                 msg_reply = ""
@@ -194,11 +197,11 @@ async def setlist(ctx):
     messages = []
     seperator = ' ██   '
     for song in playlist.songs:
-        if len(msg + song.formatted_str(include_timestamp=False) + seperator) >= 500:
+        if len(msg + song.formatted_str() + seperator) >= 500:
             messages.append(msg)
             msg = ""
         
-        msg += song.formatted_str(include_timestamp=False) + seperator
+        msg += song.formatted_str() + seperator
     
     messages.append(msg)
 
@@ -225,9 +228,10 @@ async def send_message(ctx, message, force_quiet=False):
         return
     await ctx.send(message)    
 
+
+
 if __name__ == "__main__":
 
-    loop = asyncio.get_event_loop()        
     token_updated = twitch_recorder.authorize(config['botToken']['oauthToken'], config['botToken']['expirationDate'])
 
     # save new oauth token if fetched new one
