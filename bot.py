@@ -86,6 +86,9 @@ async def track(ctx):
             await send_message(ctx, playlist.get_last_song_msg())
             return
 
+    bot_status['triggerCount'] = 0
+    bot_status['isIdentifying'] = True
+
     found = False
     trys = 0
     while found is False and trys < 10:
@@ -93,14 +96,13 @@ async def track(ctx):
         await asyncio.sleep(5)
         trys += 1
     
+    bot_status['isIdentifying'] = False
+
     if not found:
         print('exceeded number of retrys ...')
 
 async def try_identify(ctx):
     global bot_status
-
-    bot_status['isIdentifying'] = True
-    bot_status['triggerCount'] = 0
 
     try:
         file_path = await twitch_recorder.record(20)
@@ -125,7 +127,6 @@ async def try_identify(ctx):
         file_path = None
 
     if file_path is None or not os.path.exists(file_path):
-        bot_status['isIdentifying'] = False
         await send_message(ctx, botreplys.get_trouble_listening_reply(), force_quiet=bot_status['isSilenced'])
         return False
 
@@ -138,7 +139,6 @@ async def try_identify(ctx):
         info = None
 
     if info is None:
-        bot_status['isIdentifying'] = False
         msg = botreplys.get_trouble_listening_reply() if twitch_recorder.is_blocked else botreplys.get_unknown_song_reply()
         await send_message(ctx, msg, force_quiet=bot_status['isSilenced'])
         return False
@@ -150,7 +150,6 @@ async def try_identify(ctx):
         msg += "(I think) "
     msg += f'Currently playing: "{song.title}" ║ Artist(s): {", ".join(song.artists)}  ║ Album: {song.album}'
     
-    bot_status['isIdentifying'] = False
     await send_message(ctx, msg)
     return True
 
@@ -162,10 +161,24 @@ async def majhelp(ctx):
 @bot.command(name='add')
 async def add(ctx):
     track_info = ctx.content[5:].split(';')
+
+    if len(track_info) < 2:
+        return # ignore bad input
+
+    if track_info[0] in ["song","title"] or track_info[1] == "artist":
+        return # ignore sample input
+
+    if len(playlist.songs) > 0:
+        elapsedTime = datetime.datetime.now() - playlist.songs[-1].last_timestamp
+        if elapsedTime.total_seconds() < 30:
+            print("already added or identified a song less than 30 seconds ago ...")
+            await send_message(ctx, playlist.get_last_song_msg())
+            return
+
     song = Song({'title': track_info[0], 'artists': [track_info[1]], 'album': ''})
     playlist.add(song)
     
-    msg = f'Added: "{song.title}" ║ Artist(s): {", ".join(song.artists)}'
+    msg = f'Added: "{song.title}" ║ Artist: {", ".join(song.artists)}'
     await send_message(ctx, msg)
 
 @bot.command(name="lastsong", aliases=["last"])
