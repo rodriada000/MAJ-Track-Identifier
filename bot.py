@@ -159,6 +159,15 @@ async def try_identify(ctx):
 async def majhelp(ctx):
     await send_message(ctx, 'Type "!track" to identify the current song playing. "!last" for last song identified or "!last X" to get last X songs identified.')
 
+@bot.command(name='add')
+async def add(ctx):
+    track_info = ctx.content[5:].split(';')
+    song = Song({'title': track_info[0], 'artists': [track_info[1]], 'album': ''})
+    playlist.add(song)
+    
+    msg = f'Added: "{song.title}" ║ Artist(s): {", ".join(song.artists)}'
+    await send_message(ctx, msg)
+
 @bot.command(name="lastsong", aliases=["last"])
 async def lastsong(ctx):
 
