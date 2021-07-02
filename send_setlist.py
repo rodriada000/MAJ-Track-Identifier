@@ -20,12 +20,12 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()        
     playlist = SongList(config['recordedSavePath'], config['channel'], datetime.datetime.today())
 
-    day_of_week = playlist.setlist_date.weekday()
+    day_of_week = playlist.setlist_start.weekday()
     spotify_playlist = None
     tracks_added = 0
 
     # save setlist to a spotify playlist
-    if config.get('spotify') is not None:
+    if config.get('spotify') is not None and len(playlist.songs) > 0:
         spotify_client = SpotifyClient(config['spotify']['clientID'], config['spotify']['clientSecret'], scopes="playlist-read-collaborative playlist-modify-public playlist-modify-private playlist-read-private")
         
         prefix = f"MAJ {get_stream_name_by_day(day_of_week)} Setlist"
@@ -35,7 +35,7 @@ if __name__ == "__main__":
         print(spotify_playlist)
 
     # post spotify playlist and image of playlist to discord
-    if config.get('discord') is not None:
+    if config.get('discord') is not None and len(playlist.songs) > 0:
 
         print('generating png ...')
         png_filename = 'setlist.png'
@@ -44,7 +44,7 @@ if __name__ == "__main__":
         print('generating csv ...')
         path_to_csv = playlist.save_setlist_csv()
 
-        msg_content = f'{get_stream_name_by_day(day_of_week)} {playlist.setlist_date.strftime("%Y-%m-%d")}'
+        msg_content = f'{get_stream_name_by_day(day_of_week)} {playlist.setlist_start.strftime("%Y-%m-%d")}'
         
         if spotify_playlist is not None:
             msg_content += f": {spotify_playlist['external_urls']['spotify']} \n...Found {tracks_added} of {len(playlist.songs)} songs on Spotify."

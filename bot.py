@@ -163,6 +163,7 @@ async def add(ctx):
     track_info = ctx.content[5:].split(';')
 
     if len(track_info) < 2:
+        await send_message(ctx, "command usage: !add song;artist")
         return # ignore bad input
 
     if track_info[0] in ["song","title"] or track_info[1] == "artist":
@@ -170,8 +171,8 @@ async def add(ctx):
 
     if len(playlist.songs) > 0:
         elapsedTime = datetime.datetime.now() - playlist.songs[-1].last_timestamp
-        if elapsedTime.total_seconds() < 30:
-            print("already added or identified a song less than 30 seconds ago ...")
+        if elapsedTime.total_seconds() < 15:
+            print("already added or identified a song less than 15 seconds ago ...")
             await send_message(ctx, playlist.get_last_song_msg())
             return
 
@@ -267,6 +268,9 @@ if __name__ == "__main__":
             sleep(60)
     except KeyboardInterrupt:
         pass
+
+    # update the datetime to match when user goes online
+    playlist.setlist_start = datetime.datetime.today()
 
     # blocking call to have twitch bot run
     if twitch_recorder.check_user() is not None:

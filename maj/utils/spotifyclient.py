@@ -102,14 +102,14 @@ class SpotifyClient:
             return None
 
     def create_setlist_playlist(self, setlist, name_prefix='MAJ Setlist', is_public=True, is_collab=False, verbose=False):
-        playlist_name = f'{name_prefix} {setlist.setlist_date.strftime("%Y-%m-%d")}'
+        playlist_name = f'{name_prefix} {setlist.setlist_start.strftime("%Y-%m-%d")}'
         tracks = []
 
         for song in setlist.songs:
             if verbose:
                 print(f"searching for {song.title} ...")
 
-            result = self.search_tracks(title=song.title, artist=song.artists[0]) # search by album too? search for each artist?
+            result = self.search_tracks(title=song.title, artist=song.artists[0])
             if result is not None:
                 tracks.append(result)
             time.sleep(1) # add a delay between each search so requests arent rapid

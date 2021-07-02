@@ -11,6 +11,7 @@ class Song:
         self.title = info['title']
         self.album = info['album']
         self.artists = info['artists']
+        self.duration_s = info.get('duration_s', 0)
         self.last_timestamp = datetime.datetime.now()
 
         if info.get('last_timestamp', None) is None:
@@ -28,7 +29,7 @@ class Song:
         return str(self.json())
 
     def json(self):
-        return {'title': self.title, 'album': self.album, 'artists': self.artists, 'timestamp': self.timestamp.isoformat(), 'last_timestamp': self.last_timestamp.isoformat()}
+        return {'title': self.title, 'album': self.album, 'artists': self.artists, 'duration_s': self.duration_s, 'timestamp': self.timestamp.isoformat(), 'last_timestamp': self.last_timestamp.isoformat()}
 
     def formatted_str(self, include_timestamp=False):
         if '.' in self.title:
@@ -64,9 +65,9 @@ class Song:
 class SongList:
     def __init__(self, save_path, channel, date_of_list):
         self.songs = []
-        self.setlist_date = date_of_list
+        self.setlist_start = date_of_list
         self.save_path = save_path + '\\setlists\\' + channel
-        self.full_path = self.save_path + '\\' + self.setlist_date.strftime('%Y-%m-%d.json')
+        self.full_path = self.save_path + '\\' + self.setlist_start.strftime('%Y-%m-%d.json')
 
         self.init_dir()
         self.load_from_file()
@@ -75,7 +76,7 @@ class SongList:
         return str(self.json())
 
     def json(self):
-        return {'songs': [s.json() for s in self.songs]}
+        return {'setlist_start': self.setlist_start, 'songs': [s.json() for s in self.songs]}
 
     def init_dir(self):
         # create directory for setlists if not exist
@@ -87,6 +88,8 @@ class SongList:
             with open(self.full_path, 'r') as f:
                 saved = json.load(f)
                 self.songs = [Song(s) for s in saved['songs']]
+                self.songs.sort(key=lambda x: x.timestamp)
+                self.setlist_start = saved.get('setlist_start', self.setlist_start)
 
     def save_to_file(self):
         with open(self.full_path, "w") as f:
@@ -114,7 +117,7 @@ class SongList:
     def save_setlist_csv(self, file_prefix="setlist"):
 
         table = self.get_songs_tabular()
-        csv_path = self.save_path + '\\' + file_prefix + self.setlist_date.strftime('_%Y-%m-%d.csv')
+        csv_path = self.save_path + '\\' + file_prefix + self.setlist_start.strftime('_%Y-%m-%d.csv')
 
         with open(csv_path, 'w', newline='', encoding='utf-8') as f:
             write = csv.writer(f)
@@ -130,7 +133,7 @@ class SongList:
         html_path = output_path.replace(".png", ".html")
 
         with open(html_path, 'w', encoding='utf-8') as f:
-            f.write(f"<html><head>{get_stream_name_by_day(self.setlist_date.weekday())} {self.setlist_date.strftime('%Y-%m-%d')}</head><body>")
+            f.write(f"<html><head>{get_stream_name_by_day(self.setlist_start.weekday())} {self.setlist_start.strftime('%Y-%m-%d')}</head><body>")
             f.write(tabulate(table, headers=["Timestamp", "Title", "Artist", "Album"], tablefmt='html'))
             f.write("</body></html>")
 
@@ -141,8 +144,7 @@ class SongList:
         imgkit.from_file(html_path, output_path, options=options)
 
     def get_songs_tabular(self):
-        setlist_start = datetime.datetime(self.setlist_date.year, self.setlist_date.month, self.setlist_date.day, 14, 0) # 2 pm PST
-        return [[str(s.timestamp - setlist_start).split(".")[0], s.title, "; ".join(s.artists), s.album] for s in self.songs]
+        return [[str(s.timestamp - self.setlist_start).split(".")[0], s.title, "; ".join(s.artists), s.album] for s in self.songs]
 
 
 
@@ -185,7 +187,13 @@ def demo_png_save():
     setlist.save_setlist_png()
 
 
+
 # if __name__ == "__main__":
+#     today = datetime.datetime(2021,6,30,14,0)
+#     s = SongList("F:\\twitch", "myanalogjournal_", today)
+#     print(s.get_last_song_msg())
+#     print('---')
+#     print(s.get_songs_tabular())
     # demo_png_save()
     # demo_usage()
     # demo_csv_save()

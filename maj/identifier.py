@@ -6,6 +6,8 @@ import sys
 import time
 import requests
 import json
+from maj.utils.fileutils import get_all_files
+
 
 class Identifier:
     def __init__(self, key, secret, url):
@@ -19,7 +21,7 @@ class Identifier:
         self.signature_version = "1"
 
     def identify(self, file_path, data_type='audio'):
-        
+
         self.is_identifying = True
 
         timestamp = time.time()
@@ -28,7 +30,7 @@ class Identifier:
             timestamp)
 
         sign = base64.b64encode(hmac.new(self.access_secret.encode('ascii'), string_to_sign.encode('ascii'),
-                                        digestmod=hashlib.sha1).digest()).decode('ascii')
+                                         digestmod=hashlib.sha1).digest()).decode('ascii')
 
         f = open(file_path, "rb")
         sample_bytes = os.path.getsize(file_path)
@@ -45,7 +47,7 @@ class Identifier:
 
         r = requests.post(self.url, files=files, data=data)
         r.encoding = "utf-8"
-        
+
         self.is_identifying = False
 
         if r.status_code == 200:
@@ -59,17 +61,21 @@ class Identifier:
         if response is None or response['status']['msg'] != "Success":
             print(response)
             return None
-        
+
         if len(response['metadata']['music']) < 1:
             print(response)
             return None
         else:
             song = response['metadata']['music'][0]
             title = song['title']
-            artists = [v['name'] for v in song['artists']] 
+            artists = [v['name'] for v in song['artists']]
             album = song['album']['name']
-            
-            return {'title': title, 'artists': artists, 'album': album, 'multipleResults': len(response['metadata']['music']) > 1}
+
+            return {'title': title,
+                    'artists': artists, 
+                    'album': album, 
+                    'duration_s': song['duration_ms'] / 1000,
+                    'multipleResults': len(response['metadata']['music']) > 1}
 
 
 def sample_get():
@@ -78,7 +84,7 @@ def sample_get():
     """
     config = {}
 
-    with open('..\\config.json') as f:
+    with open('config.json') as f:
         config = json.load(f)
 
     # GET FROM ACR
@@ -87,11 +93,48 @@ def sample_get():
     requrl = config['acrHostUrl']
 
     identifier = Identifier(access_key, access_secret, requrl)
-    response = identifier.identify('F:\\twitch\\recorded\\relaxbeats\\sample.mp4')
+    response = identifier.identify(
+        'F:\\twitch\\recorded\\myanalogjournal_\\myanalogjournal_ - 2021-06-30 15h47m20s.mp4')
     info = identifier.get_song_info_from_response(response)
 
     if info is None:
         print("Could not identify the current song ...")
     else:
         print(info)
-        print("Currently playing: " + info['title'] + '\nBy artist(s): ' + ';'.join(info['artists']) + '\nAlbum: ' + info['album'])
+        print("Currently playing: " + info['title'] + '\nBy artist(s): ' + ';'.join(
+            info['artists']) + '\nAlbum: ' + info['album'])
+
+
+def demo_create_from_files():
+    from maj.songlist import Song,SongList
+    import datetime
+    
+    config = {}
+
+    with open('config.json') as f:
+        config = json.load(f)
+
+    # GET FROM ACR
+    access_key = config['acrKey']
+    access_secret = config['acrSecret']
+    requrl = config['acrHostUrl']
+
+    identifier = Identifier(access_key, access_secret, requrl)
+    playlist = SongList(config['recordedSavePath'], config['channel'], datetime.datetime.today())
+
+    files = get_all_files('F:\\twitch\\recorded\\myanalogjournal_', recursive=False)
+    files.sort()
+
+    for f in files:
+        print(f)
+        if '2021-06-30' not in f: 
+            continue
+
+        response = identifier.identify(f)
+        info = identifier.get_song_info_from_response(response)
+        
+        if info is not None:
+            playlist.add(Song(info))
+
+# if __name__ == "__main__":
+    # demo_create_from_files()
