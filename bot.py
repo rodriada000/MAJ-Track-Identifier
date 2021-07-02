@@ -166,7 +166,7 @@ async def add(ctx):
         await send_message(ctx, "command usage: !add song;artist")
         return # ignore bad input
 
-    if track_info[0] in ["song","title"] or track_info[1] == "artist":
+    if track_info[0] in ["song","title", ""] or track_info[1] in ["artist", ""]:
         return # ignore sample input
 
     if len(playlist.songs) > 0:
