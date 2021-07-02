@@ -76,7 +76,7 @@ class SongList:
         return str(self.json())
 
     def json(self):
-        return {'setlist_start': self.setlist_start, 'songs': [s.json() for s in self.songs]}
+        return {'setlist_start': self.setlist_start.isoformat(), 'songs': [s.json() for s in self.songs]}
 
     def init_dir(self):
         # create directory for setlists if not exist
@@ -89,7 +89,8 @@ class SongList:
                 saved = json.load(f)
                 self.songs = [Song(s) for s in saved['songs']]
                 self.songs.sort(key=lambda x: x.timestamp)
-                self.setlist_start = saved.get('setlist_start', self.setlist_start)
+                if saved.get('setlist_start', None) is not None:
+                    self.setlist_start = datetime.datetime.fromisoformat(saved['setlist_start'])
 
     def save_to_file(self):
         with open(self.full_path, "w") as f:
