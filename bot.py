@@ -10,8 +10,9 @@ from maj.twitchrecorder import TwitchRecorder
 from maj.songlist import Song,SongList
 from maj.vpnrotator import VpnRotator
 from maj.utils import botreplys
+from maj.pollvote import MajPoll
 
-
+SEP_CHAR = ' ██   '
 bot_status = {'hasGreeted': False, 'isIdentifying': False, 'triggerCount': 0, 'isSilenced': True}
 config = {}
 
@@ -39,6 +40,9 @@ twitch_recorder = TwitchRecorder(config['botClientID'], config['botSecret'], con
 # set up music identifier
 music_identifier = Identifier(config['acrKey'], config['acrSecret'], config['acrHostUrl'])
 
+# set up poller
+maj_poll = None
+prev_polls = []
 
 @bot.event
 async def event_ready():
@@ -176,10 +180,57 @@ async def add(ctx):
             await send_message(ctx, playlist.get_last_song_msg())
             return
 
-    song = Song({'title': track_info[0], 'artists': [track_info[1]], 'album': ''})
+    song = Song({'title': track_info[0],
+                 'artists': [track_info[1]],
+                 'added_by': ctx.author.name.lower(),
+                 'album': ''})
     playlist.add(song)
     
     msg = f'Added: "{song.title}" ║ Artist: {", ".join(song.artists)}'
+    await send_message(ctx, msg)
+
+@bot.command(name='remove', aliases=['undo'])
+async def remove(ctx):
+    if len(playlist.songs) == 0:
+        return
+    
+    # find last song added by user
+    song = None
+    idx = len(playlist.songs) 
+    while idx > 0:
+        idx -= 1
+        if playlist.songs[idx].added_by != "":
+            song = playlist.songs[idx]
+            break
+
+    if song is None:
+        return # no song added by user
+
+    # remove song only if added in past 2 minutes
+    elapsedTime = datetime.datetime.now() - song.last_timestamp
+    if elapsedTime.total_seconds() < 120:
+        playlist.songs.pop(idx)
+        msg = f'Removed: "{song.title}" ║ Artist: {", ".join(song.artists)}'
+        await send_message(ctx, msg)
+
+
+@bot.command(name='score')
+async def score(ctx):
+    if len(playlist.songs) == 0:
+        return
+    
+    score = 0
+    for s in playlist.songs:
+        if s.added_by == ctx.author.name.lower():
+            score += 1
+
+    if score == 0:
+        msg = f"{ctx.author.name}, you have not ID'ed anything yet!"
+    elif score == 1:
+        msg = f"{ctx.author.name}, you have ID'ed only one song so far this stream!"
+    else:
+        msg = f"{ctx.author.name}, you have ID'ed {score} songs so far this stream!"
+    
     await send_message(ctx, msg)
 
 @bot.command(name="lastsong", aliases=["last"])
@@ -205,11 +256,11 @@ async def lastsong(ctx):
         msg_reply = f"The last {num_tracks} tracks played (most recent first) --> "
         for i in range(1, num_tracks + 1):
             song_info = playlist.songs[-i].formatted_str()
-            if len(msg_reply + song_info + f' @ {playlist.songs[-i].get_last_identified_in_minutes()}  ██   ') >= 500:
+            if len(msg_reply + song_info + f' @ {playlist.songs[-i].get_last_identified_in_minutes()}{SEP_CHAR}') >= 500:
                 messages.append(msg_reply)
                 msg_reply = ""
             
-            msg_reply += song_info + f' @ {playlist.songs[-i].get_last_identified_in_minutes()}  ██   '
+            msg_reply += song_info + f' @ {playlist.songs[-i].get_last_identified_in_minutes()}{SEP_CHAR}'
         messages.append(msg_reply)
 
         await send_message_batch(ctx, messages)
@@ -218,13 +269,12 @@ async def lastsong(ctx):
 async def setlist(ctx):
     msg = "(Title | Artists | Album) --> "
     messages = []
-    seperator = ' ██   '
     for song in playlist.songs:
-        if len(msg + song.formatted_str() + seperator) >= 500:
+        if len(msg + song.formatted_str() + SEP_CHAR) >= 500:
             messages.append(msg)
             msg = ""
         
-        msg += song.formatted_str() + seperator
+        msg += song.formatted_str() + SEP_CHAR
     
     messages.append(msg)
 
@@ -251,7 +301,47 @@ async def send_message(ctx, message, force_quiet=False):
         return
     await ctx.send(message)    
 
+@bot.command(name='poll')
+async def poll(ctx):
+    global maj_poll
+    chat_msgs = ctx.content.split(' ')
 
+    if ctx.content == "!poll":
+        # return  question/results of most recent poll  
+        if maj_poll is not None:
+            msg = f"Current poll: {maj_poll.question}? "
+            answers = maj_poll.get_answers()
+            for k,v in maj_poll.get_answers().items():
+                percent = v / maj_poll.get_total_vote_count()
+                msg += f"{k} - {percent * 100:0.0f}% {SEP_CHAR}"
+            await send_message(ctx, msg)
+        return
+
+    if ctx.content == "!poll end":
+        # end poll
+        if maj_poll is not None and not maj_poll.has_ended:
+            maj_poll.has_ended = True
+            prev_polls.append(maj_poll)
+            
+            msg = f"The poll has ended: {maj_poll.question}? "
+            answers = maj_poll.get_answers()
+            for k,v in maj_poll.get_answers().items():
+                percent = v / maj_poll.get_total_vote_count()
+                msg += f"{k} - {percent * 100:0.0f}% {SEP_CHAR}"
+            await send_message(ctx, msg)
+    else:
+        # start a new poll
+        if maj_poll is None or maj_poll.has_ended:
+            question = ctx.content[5:].strip()
+            maj_poll = MajPoll(question)
+            await send_message(ctx, f"A new poll has started: {question}? Type !vote with your answer")
+
+@bot.command(name='vote')
+async def vote(ctx):
+    answer = ctx.content[5:].strip()
+
+    if maj_poll is not None and len(answer) > 0:
+        maj_poll.vote(answer, ctx.author.name.lower())
 
 if __name__ == "__main__":
 
@@ -281,3 +371,4 @@ if __name__ == "__main__":
 
     if vpn.is_connected:
         vpn.disconnect()
+

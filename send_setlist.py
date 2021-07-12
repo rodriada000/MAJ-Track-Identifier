@@ -2,11 +2,12 @@ import datetime
 import json
 import asyncio
 from os import path
+from time import sleep
 from maj.songlist import Song,SongList
 from maj.discordbot import MajBotClient
+from maj.twitchrecorder import TwitchRecorder
 from maj.utils.spotifyclient import SpotifyClient
 from maj.utils.botreplys import get_stream_name_by_day
-
 
 config = {}
 
@@ -23,6 +24,17 @@ if __name__ == "__main__":
     day_of_week = playlist.setlist_start.weekday()
     spotify_playlist = None
     tracks_added = 0
+
+    # ensure user has stopped streaming before generating/posting
+    twitch_recorder = TwitchRecorder(config['botClientID'], config['botSecret'], config['channel'], config['recordedSavePath'])
+    twitch_recorder.authorize(config['botToken']['oauthToken'], config['botToken']['expirationDate'])
+
+    try:
+        while twitch_recorder.check_user() is not None:
+            print('waiting for channel to be offline ...')
+            sleep(60)
+    except KeyboardInterrupt:
+        pass
 
     # save setlist to a spotify playlist
     if config.get('spotify') is not None and len(playlist.songs) > 0:
