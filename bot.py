@@ -180,8 +180,8 @@ async def add(ctx):
             await send_message(ctx, playlist.get_last_song_msg())
             return
 
-    song = Song({'title': track_info[0],
-                 'artists': [track_info[1]],
+    song = Song({'title': track_info[0].strip(),
+                 'artists': [track_info[1].strip()],
                  'added_by': ctx.author.name.lower(),
                  'album': ''})
     playlist.add(song)
