@@ -314,6 +314,7 @@ async def poll(ctx):
             for k,v in maj_poll.get_answers().items():
                 percent = v / maj_poll.get_total_vote_count()
                 msg += f"{k} - {percent * 100:0.0f}% {SEP_CHAR}"
+            msg += "Type !vote with your answer"
             await send_message(ctx, msg)
         return
 
