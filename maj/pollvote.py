@@ -4,6 +4,7 @@ import time
 import requests
 import json
 
+SEP_CHAR = ' ██   '
 
 class MajPoll:
     def __init__(self, question):
@@ -30,6 +31,22 @@ class MajPoll:
 
         return dict(sorted(answers.items(), key=lambda item: item[1], reverse=True))
 
+    def get_poll_results(self, msg):
+        answers = self.get_answers()
+        messages = []
+        for k,v in self.get_answers().items():
+            percent = v / self.get_total_vote_count()
+            result_str = f"{k} - {percent * 100:0.0f}% {SEP_CHAR}"
+
+            if len(msg + result_str) < 500:
+                msg += result_str
+                print(msg)
+            else:
+                messages.append(msg)
+                msg = ""
+
+        messages.append(msg)
+        return messages
 
 
 def demo_poll():
@@ -47,4 +64,7 @@ def demo_poll():
 
     print(p.get_answers())
     print(p.get_total_vote_count())
+    print(p.get_poll_results("Current poll is: blah. Type !vote to vote"))
+
+demo_poll()
         

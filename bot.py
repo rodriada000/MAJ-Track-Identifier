@@ -311,7 +311,7 @@ async def poll(ctx):
         if maj_poll is not None:
             msg = f"Current poll: {maj_poll.question}? "
             msg += "Type !vote with your answer"
-            messages = get_poll_results(msg)
+            messages = maj_poll.get_poll_results(msg)
             await send_message_batch(ctx, messages)
         return
 
@@ -322,7 +322,7 @@ async def poll(ctx):
             prev_polls.append(maj_poll)
             
             msg = f"The poll has ended: {maj_poll.question}? "
-            messages = get_poll_results(msg)
+            messages = maj_poll.get_poll_results(msg)
             await send_message_batch(ctx, messages)
     else:
         # start a new poll
@@ -330,23 +330,6 @@ async def poll(ctx):
             question = ctx.content[5:].strip()
             maj_poll = MajPoll(question)
             await send_message(ctx, f"A new poll has started: {question}? Type !vote with your answer")
-
-def get_poll_results(msg):
-    answers = maj_poll.get_answers()
-    messages = []
-    messages.append(msg)
-    new_msg = ""
-    for k,v in maj_poll.get_answers().items():
-        percent = v / maj_poll.get_total_vote_count()
-        result_str = f"{k} - {percent * 100:0.0f}% {SEP_CHAR}"
-
-        if len(new_msg + result_str) < 500:
-            new_msg += result_str
-        else:
-            messages.append(new_msg)
-            new_msg = ""
-
-    return messages
 
 @bot.command(name='vote')
 async def vote(ctx):
