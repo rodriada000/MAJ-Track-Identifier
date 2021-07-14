@@ -310,12 +310,9 @@ async def poll(ctx):
         # return  question/results of most recent poll  
         if maj_poll is not None:
             msg = f"Current poll: {maj_poll.question}? "
-            answers = maj_poll.get_answers()
-            for k,v in maj_poll.get_answers().items():
-                percent = v / maj_poll.get_total_vote_count()
-                msg += f"{k} - {percent * 100:0.0f}% {SEP_CHAR}"
             msg += "Type !vote with your answer"
-            await send_message(ctx, msg)
+            messages = get_poll_results(msg)
+            await send_message_batch(ctx, messages)
         return
 
     if ctx.content == "!poll end":
@@ -325,17 +322,29 @@ async def poll(ctx):
             prev_polls.append(maj_poll)
             
             msg = f"The poll has ended: {maj_poll.question}? "
-            answers = maj_poll.get_answers()
-            for k,v in maj_poll.get_answers().items():
-                percent = v / maj_poll.get_total_vote_count()
-                msg += f"{k} - {percent * 100:0.0f}% {SEP_CHAR}"
-            await send_message(ctx, msg)
+            messages = get_poll_results(msg)
+            await send_message_batch(ctx, messages)
     else:
         # start a new poll
         if maj_poll is None or maj_poll.has_ended:
             question = ctx.content[5:].strip()
             maj_poll = MajPoll(question)
             await send_message(ctx, f"A new poll has started: {question}? Type !vote with your answer")
+
+def get_poll_results(msg):
+    answers = maj_poll.get_answers()
+    messages = []
+    for k,v in maj_poll.get_answers().items():
+        percent = v / maj_poll.get_total_vote_count()
+        result_str = f"{k} - {percent * 100:0.0f}% {SEP_CHAR}"
+
+        if len(msg + result_str) < 500:
+            msg += result_str
+        else:
+            messages.append(msg)
+            msg = ""
+
+    return messages
 
 @bot.command(name='vote')
 async def vote(ctx):
