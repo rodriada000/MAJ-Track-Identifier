@@ -85,8 +85,8 @@ async def track(ctx):
 
     if len(playlist.songs) > 0:
         elapsedTime = datetime.datetime.now() - playlist.songs[-1].last_timestamp
-        if elapsedTime.total_seconds() < 60:
-            print("already identified a song less than 60 seconds ago ...")
+        if elapsedTime.total_seconds() < 30:
+            print("already identified a song less than 30 seconds ago ...")
             await send_message(ctx, playlist.get_last_song_msg())
             return
 
@@ -309,8 +309,7 @@ async def poll(ctx):
     if ctx.content == "!poll":
         # return  question/results of most recent poll  
         if maj_poll is not None:
-            msg = f"Current poll: {maj_poll.question}? "
-            msg += "Type !vote with your answer"
+            msg = f"Current poll: {maj_poll.question}? Type !vote with your answer... "
             messages = maj_poll.get_poll_results(msg)
             await send_message_batch(ctx, messages)
         return
