@@ -334,15 +334,17 @@ async def poll(ctx):
 def get_poll_results(msg):
     answers = maj_poll.get_answers()
     messages = []
+    messages.append(msg)
+    new_msg = ""
     for k,v in maj_poll.get_answers().items():
         percent = v / maj_poll.get_total_vote_count()
         result_str = f"{k} - {percent * 100:0.0f}% {SEP_CHAR}"
 
-        if len(msg + result_str) < 500:
-            msg += result_str
+        if len(new_msg + result_str) < 500:
+            new_msg += result_str
         else:
-            messages.append(msg)
-            msg = ""
+            messages.append(new_msg)
+            new_msg = ""
 
     return messages
 
