@@ -2,6 +2,7 @@ from spotipy import oauth2, Spotify
 import json
 import datetime
 import time
+import random
 from maj.songlist import SongList,Song
 
 
@@ -122,6 +123,52 @@ class SpotifyClient:
 
         return playlist, len(tracks)
 
+    def merge_playlists(self, target_playlist_id, source_playlist_id):
+        target_track_ids = self.get_playlist_track_ids(target_playlist_id)
+        source_track_ids = self.get_playlist_track_ids(source_playlist_id)
+        to_add = []
+        for track_id in source_track_ids:
+            if track_id not in target_track_ids:
+                to_add.append(track_id)
+
+        if len(to_add) == 0:
+            return # nothing to add
+
+        try:
+            print(f'adding ... {to_add}')
+            self.add_track_to_playlist(target_playlist_id, to_add)
+        except Exception as e:
+            print(f'    failed to add: {str(e)}')
+
+
+    def get_playlist_ids(self, keyword):
+        playlists = self.sp.current_user_playlists(limit=50)
+        playlist_ids = []
+        while playlists:
+            for i, playlist in enumerate(playlists['items']):
+                if keyword.lower() in playlist['name'].lower():
+                    playlist_ids.append(playlist['id'])
+
+            if playlists['next']:
+                playlists = self.sp.next(playlists)
+            else:
+                playlists = None
+        
+        return playlist_ids
+
+    def get_playlist_track_ids(self, playlist_id):
+        tracks = self.sp.playlist_items(playlist_id, limit=100, fields="items(track(name,id)),next")
+        track_ids = []
+        while tracks:
+            for i, playlist in enumerate(tracks['items']):
+                track_ids.append(playlist['track']['id'])
+
+            if tracks['next']:
+                tracks = self.sp.next(tracks)
+            else:
+                tracks = None
+        
+        return track_ids
 
 
 def demo_search_usage():
@@ -151,6 +198,27 @@ def demo_create_from_setlist():
     print(playlist['external_urls']['spotify'])
     print(f"...Found {num_added} of {len(setlist.songs)} songs on Spotify.")
 
+
+def create_megamix(megamix_name, playlist_keyword):
+    config = {}
+
+    with open('.\\config.json') as f:
+        config = json.load(f)
+
+    client = SpotifyClient(config['spotify']['clientID'], config['spotify']['clientSecret'], scopes="playlist-read-collaborative playlist-modify-public playlist-modify-private playlist-read-private")
+    
+    playlists = client.get_playlist_ids(playlist_keyword)
+    megamix_id = client.get_playlist_ids(megamix_name)[0]
+
+    for p in playlists:
+        if p == megamix_id: continue # don't merge into self
+        print(f'checking {p} for merge ...')
+        client.merge_playlists(megamix_id, p)
+        time.sleep(random.uniform(1,3)) # added delay to avoid 403s on many merges
+
+    
+
 # if __name__ == "__main__":
-    #demo_search_usage()
+    # demo_search_usage()
     # demo_create_from_setlist()
+    # create_megamix("MAJ Disco Friday Megamix", "Disco Friday")
