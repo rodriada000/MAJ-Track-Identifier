@@ -222,6 +222,7 @@ async def score(ctx):
     if ctx.content == "!score top":
         scores = {}
         for s in playlist.songs:
+            if s.added_by == "": continue # skip songs added by bot
             scores[s.added_by] = scores.get(s.added_by, 0) + 1
 
         if len(scores) == 0:
@@ -346,7 +347,7 @@ async def majpoll(ctx):
     else:
         # start a new poll
         if maj_poll is None or maj_poll.has_ended:
-            question = ctx.content[5:].strip()
+            question = ctx.content[8:].strip()
             maj_poll = MajPoll(question)
             await send_message(ctx, f"A new poll has started: {question}? Type !vote with your answer")
 
