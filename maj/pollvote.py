@@ -66,5 +66,4 @@ def demo_poll():
     print(p.get_total_vote_count())
     print(p.get_poll_results("Current poll is: blah. Type !vote to vote"))
 
-demo_poll()
         

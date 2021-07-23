@@ -40,6 +40,13 @@ ALREADY_IDENTIFYING_REPLYS = ["Gimme a second, I'm still trying to listen.",
                               "I'll figure it out one day ..."
                               "I'm already trying to identify!"]
 
+WELCOME_GREETINGS = ["Welcome {0} to {1}!"
+                    ,"Hey there {0}! Thanks for joining {1}!"
+                    ,"Hey hey hey {0} is in the house! Welcome to {1}!"
+                    ,"Looks like {0} just joined us! Everyone make sure to say hi and welcome them to {1}!"
+                    ,"Yo yo yo {0}. Thanks for joining {1}!"
+                    ,"Hi {0}! Glad you could make it to {1}!"]
+
 
 def get_greeting(date):
     if date.weekday() == 0:
@@ -63,9 +70,12 @@ def get_trouble_listening_reply():
 def get_already_listening_reply():
     return ALREADY_IDENTIFYING_REPLYS[random.randint(0, len(ALREADY_IDENTIFYING_REPLYS) - 1)]
 
+def get_welcome_greeting(person, day):
+    return WELCOME_GREETINGS[random.randint(0, len(WELCOME_GREETINGS) - 1)].format(person, day)
 
-def get_stream_name_by_day(weekday):
+
+def get_stream_name_by_day(weekday, default="My Analog Journal"):
     names = ["Jazz Club Monday", "", "Soulful Wednesday", "", "Disco Friday"]
     if weekday < 0 or weekday >= len(names):
-        return ""
+        return default
     return names[weekday]

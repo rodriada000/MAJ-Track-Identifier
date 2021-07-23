@@ -218,6 +218,26 @@ async def remove(ctx):
 async def score(ctx):
     if len(playlist.songs) == 0:
         return
+
+    if ctx.content == "!score top":
+        scores = {}
+        for s in playlist.songs:
+            scores[s.added_by] = scores.get(s.added_by, 0) + 1
+
+        if len(scores) == 0:
+            return # no scores yet
+        
+        sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1], reverse=True))
+        first = [i for i in sorted_scores.items()][0]
+        msg = f"{first[0]} is in the lead and has ID'ed {first[1]} songs this stream!"
+
+        if len(sorted_scores) > 1:
+            second = [i for i in sorted_scores.items()][1]
+            msg += f" {second[0]} is right behind with {second[1]} songs ID'ed so far!"
+
+        await send_message(ctx, msg)
+        return
+
     
     score = 0
     for s in playlist.songs:
@@ -301,12 +321,12 @@ async def send_message(ctx, message, force_quiet=False):
         return
     await ctx.send(message)    
 
-@bot.command(name='poll')
-async def poll(ctx):
+@bot.command(name='majpoll')
+async def majpoll(ctx):
     global maj_poll
     chat_msgs = ctx.content.split(' ')
 
-    if ctx.content == "!poll":
+    if ctx.content == "!majpoll":
         # return  question/results of most recent poll  
         if maj_poll is not None:
             msg = f"Current poll: {maj_poll.question}? Type !vote with your answer... "
@@ -314,7 +334,7 @@ async def poll(ctx):
             await send_message_batch(ctx, messages)
         return
 
-    if ctx.content == "!poll end":
+    if ctx.content == "!majpoll end":
         # end poll
         if maj_poll is not None and not maj_poll.has_ended:
             maj_poll.has_ended = True
@@ -336,6 +356,20 @@ async def vote(ctx):
 
     if maj_poll is not None and len(answer) > 0:
         maj_poll.vote(answer, ctx.author.name.lower())
+
+@bot.command(name='greet')
+async def greet(ctx):
+    chat_msgs = ctx.content.split(' ')
+    greeting = ""
+    today = datetime.datetime.today()
+
+    if len(chat_msgs) > 1:
+        greeting = botreplys.get_welcome_greeting(chat_msgs[1], botreplys.get_stream_name_by_day(today.weekday()))
+    else:
+        greeting = botreplys.get_greeting(today)
+
+    await send_message(ctx, greeting)
+    
 
 if __name__ == "__main__":
 
