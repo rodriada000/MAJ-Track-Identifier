@@ -32,11 +32,26 @@ class MajPoll:
         return dict(sorted(answers.items(), key=lambda item: item[1], reverse=True))
 
     def get_poll_results(self, msg):
+
+        msg += f" Total votes: {self.get_total_vote_count()} || "
+
         answers = self.get_answers()
+        distinct_counts = []
+        for c in answers.values():
+            if c not in distinct_counts:
+                distinct_counts.append(c)
+
         messages = []
-        for k,v in self.get_answers().items():
-            percent = v / self.get_total_vote_count()
-            result_str = f"{k} - {percent * 100:0.0f}% {SEP_CHAR}"
+
+        for count in distinct_counts:
+            p = "person" if count == 1 else "people"
+            result_str = f"{count} {p} voted ... "
+            people = []
+            for k,v in self.get_answers().items():
+                if v != count: continue
+                people.append(k)
+
+            result_str += ", ".join(people) + SEP_CHAR
 
             if len(msg + result_str) < 500:
                 msg += result_str
@@ -64,6 +79,4 @@ def demo_poll():
 
     print(p.get_answers())
     print(p.get_total_vote_count())
-    print(p.get_poll_results("Current poll is: blah. Type !vote to vote"))
-
-        
+    print(p.get_poll_results("Current poll is: blah. Type !vote to vote."))
