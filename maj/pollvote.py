@@ -51,7 +51,7 @@ class MajPoll:
                 if v != count: continue
                 people.append(k)
 
-            result_str += ", ".join(people) + SEP_CHAR
+            result_str += "  -  ".join(people) + SEP_CHAR
 
             if len(msg + result_str) < 500:
                 msg += result_str

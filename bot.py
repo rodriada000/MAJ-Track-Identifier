@@ -13,7 +13,7 @@ from maj.utils import botreplys
 from maj.pollvote import MajPoll
 
 SEP_CHAR = ' ██   '
-bot_status = {'hasGreeted': False, 'isIdentifying': False, 'triggerCount': 0, 'isSilenced': True}
+bot_status = {'hasGreeted': False, 'isIdentifying': False, 'triggerCount': 0, 'isSilenced': True, 'tryCount': 0}
 config = {}
 
 with open('config.json', 'r') as f:
@@ -75,6 +75,7 @@ async def track(ctx):
 
     if bot_status['isIdentifying'] is True or twitch_recorder.is_recording or music_identifier.is_identifying:
         print('already trying to identify!')
+        bot_status['tryCount'] = 0 # reset count so bot will keep trying if user put in '!track' again
         bot_status['triggerCount'] += 1
 
         if bot_status['triggerCount'] >= 5:
@@ -94,11 +95,11 @@ async def track(ctx):
     bot_status['isIdentifying'] = True
 
     found = False
-    trys = 0
-    while found is False and trys < 10:
+    bot_status['tryCount'] = 0
+    while found is False and bot_status['tryCount'] < 10:
         found = await try_identify(ctx)
         await asyncio.sleep(5)
-        trys += 1
+        bot_status['tryCount'] += 1
     
     bot_status['isIdentifying'] = False
 
@@ -149,10 +150,7 @@ async def try_identify(ctx):
         
     song = Song(info)
     playlist.add(song)
-    msg = ""
-    if info['multipleResults'] is True:
-        msg += "(I think) "
-    msg += f'Currently playing: "{song.title}" ║ Artist(s): {", ".join(song.artists)}  ║ Album: {song.album}'
+    msg = f'Currently playing: "{song.title}" ║ Artist(s): {", ".join(song.artists)}  ║ Album: {song.album}'
     
     await send_message(ctx, msg)
     return True
@@ -194,6 +192,8 @@ async def remove(ctx):
     if len(playlist.songs) == 0:
         return
     
+    chat_msgs = ctx.content.split(' ')
+
     # find last song added by user
     song = None
     idx = len(playlist.songs) 
@@ -206,9 +206,9 @@ async def remove(ctx):
     if song is None:
         return # no song added by user
 
-    # remove song only if added in past 2 minutes
+    # remove song only if added in past 2 minutes or keyword 'force' is used
     elapsedTime = datetime.datetime.now() - song.last_timestamp
-    if elapsedTime.total_seconds() < 120:
+    if elapsedTime.total_seconds() < 120 or 'force' in chat_msgs:
         playlist.songs.pop(idx)
         msg = f'Removed: "{song.title}" ║ Artist: {", ".join(song.artists)}'
         await send_message(ctx, msg)
@@ -274,7 +274,7 @@ async def lastsong(ctx):
         await send_message(ctx, playlist.get_last_song_msg())
     else:
         messages = []
-        msg_reply = f"The last {num_tracks} tracks played (most recent first) --> "
+        msg_reply = f"The last {num_tracks} tracks played --> "
         for i in range(1, num_tracks + 1):
             song_info = playlist.songs[-i].formatted_str()
             if len(msg_reply + song_info + f' @ {playlist.songs[-i].get_last_identified_in_minutes()}{SEP_CHAR}') >= 500:
@@ -365,7 +365,7 @@ async def greet(ctx):
     today = datetime.datetime.today()
 
     if len(chat_msgs) > 1:
-        greeting = botreplys.get_welcome_greeting(chat_msgs[1], botreplys.get_stream_name_by_day(today.weekday()))
+        greeting = botreplys.get_welcome_greeting(ctx.content[6:].strip(), botreplys.get_stream_name_by_day(today.weekday()))
     else:
         greeting = botreplys.get_greeting(today)
 
