@@ -4,8 +4,6 @@ import time
 import requests
 import json
 
-SEP_CHAR = ' ██   '
-
 class MajPoll:
     def __init__(self, question):
         self.question = question
@@ -31,9 +29,9 @@ class MajPoll:
 
         return dict(sorted(answers.items(), key=lambda item: item[1], reverse=True))
 
-    def get_poll_results(self, msg):
+    def get_poll_results(self):
 
-        msg += f" Total votes: {self.get_total_vote_count()} || "
+        msg = f" Total votes: {self.get_total_vote_count()} || "
 
         answers = self.get_answers()
         distinct_counts = []
@@ -41,27 +39,16 @@ class MajPoll:
             if c not in distinct_counts:
                 distinct_counts.append(c)
 
-        messages = []
-
         for count in distinct_counts:
             p = "person" if count == 1 else "people"
-            result_str = f"{count} {p} voted ... "
-            people = []
+            answers = []
             for k,v in self.get_answers().items():
                 if v != count: continue
-                people.append(k)
+                answers.append(k)
 
-            result_str += "  -  ".join(people) + SEP_CHAR
+            msg += f"{count} {p} voted ... {'  -  '.join(answers)} ██  "
 
-            if len(msg + result_str) < 500:
-                msg += result_str
-                print(msg)
-            else:
-                messages.append(msg)
-                msg = ""
-
-        messages.append(msg)
-        return messages
+        return msg
 
 
 def demo_poll():
@@ -79,4 +66,4 @@ def demo_poll():
 
     print(p.get_answers())
     print(p.get_total_vote_count())
-    print(p.get_poll_results("Current poll is: blah. Type !vote to vote."))
+    print(p.get_poll_results())

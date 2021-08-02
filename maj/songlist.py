@@ -43,11 +43,11 @@ class Song:
         else:
             msg += "{0}".format(self.artists[0])
 
-        if include_timestamp:
-            msg += " ║ {0} ║ timestamp: {1}".format(
-                self.album, self.timestamp.strftime('%H:%M:%S'))
-        else:
+        if self.album != "":
             msg += " ║ {0}".format(self.album)
+
+        if include_timestamp:
+            msg += " ║ timestamp: {0}".format(self.timestamp.strftime('%H:%M:%S'))
 
         return msg
 

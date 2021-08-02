@@ -257,36 +257,23 @@ class TwitchBot(commands.Bot):
 
 
         if num_tracks == 1:
-            print(self.playlist.get_last_song_msg())
             await self.send_message(ctx, self.playlist.get_last_song_msg())
         else:
-            messages = []
             msg_reply = f"The last {num_tracks} tracks played --> "
             for i in range(1, num_tracks + 1):
                 song_info = self.playlist.songs[-i].formatted_str()
-                if len(msg_reply + song_info + f' @ {self.playlist.songs[-i].get_last_identified_in_minutes()}{SEP_CHAR}') >= 500:
-                    messages.append(msg_reply)
-                    msg_reply = ""
-                
                 msg_reply += song_info + f' @ {self.playlist.songs[-i].get_last_identified_in_minutes()}{SEP_CHAR}'
-            messages.append(msg_reply)
 
-            await self.send_message_batch(ctx, messages)
+            await self.send_message(ctx, msg_reply, separator=[SEP_CHAR])
 
     @commands.command(name='setlist')
     async def setlist(self, ctx):
         msg = "(Title | Artists | Album) --> "
-        messages = []
         for song in self.playlist.songs:
-            if len(msg + song.formatted_str() + SEP_CHAR) >= 500:
-                messages.append(msg)
-                msg = ""
-            
             msg += song.formatted_str() + SEP_CHAR
-        
-        messages.append(msg)
 
-        await self.send_message_batch(ctx, messages)
+        await self.send_message(ctx, msg, separator=[SEP_CHAR])
+
 
     @commands.command(name='quiet')
     async def quiet(self, ctx):
@@ -305,8 +292,8 @@ class TwitchBot(commands.Bot):
             # return  question/results of most recent poll  
             if self.maj_poll is not None:
                 msg = f"Current poll: {self.maj_poll.question}? Type !vote with your answer... "
-                messages = self.maj_poll.get_poll_results(msg)
-                await self.send_message_batch(ctx, messages)
+                msg += self.maj_poll.get_poll_results()
+                await self.send_message(ctx, msg, separator=["-", SEP_CHAR])
             return
 
         if ctx.content == "!majpoll end":
@@ -316,8 +303,8 @@ class TwitchBot(commands.Bot):
                 self.prev_polls.append(self.maj_poll)
                 
                 msg = f"The poll has ended: {self.maj_poll.question}? "
-                messages = self.maj_poll.get_poll_results(msg)
-                await self.send_message_batch(ctx, messages)
+                msg += self.maj_poll.get_poll_results()
+                await self.send_message(ctx, msg, separator=["-", SEP_CHAR])
         else:
             # start a new poll
             if self.maj_poll is None or self.maj_poll.has_ended:
@@ -347,11 +334,43 @@ class TwitchBot(commands.Bot):
     
     async def send_message_batch(self, ctx, messages):
         for m in messages:
-            await self.send_message(ctx, m)
-            await asyncio.sleep(1.5 + random.random())
+            print(len(m))
+            await ctx.send(m)
+            await asyncio.sleep(random.uniform(2,3.5))
 
-    async def send_message(self, ctx, message, force_quiet=False):
+    async def send_message(self, ctx, message, separator=[" "], force_quiet=False):
         print(message)
         if self.config['print_only'] or force_quiet:
             return
-        await ctx.send(message)
+
+        if len(message) < 500:
+            await ctx.send(message)
+        else:
+            # split message by 500 chunks
+            messages = []
+
+            if " " not in separator: separator.append(" ")
+
+            while len(message) > 0:
+                message_len = min(498, len(message)) # get next ~500 characters or rest of message
+                sub_msg = message[:message_len]
+                split_idx = -1
+                
+                if message_len < 498:
+                    messages.append(message)
+                    break
+                    
+                for sep in separator:
+                    split_idx = sub_msg[::-1].find(sep) # reverse string and look for separator
+                    if split_idx != -1:
+                        break
+                
+                if split_idx not in [-1, 0]:
+                    sub_msg = sub_msg[:-split_idx]
+                
+                messages.append(sub_msg)
+                message = message.replace(sub_msg, "")
+
+            await self.send_message_batch(ctx, messages)
+
+
