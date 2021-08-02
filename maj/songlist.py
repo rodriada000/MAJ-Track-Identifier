@@ -67,6 +67,7 @@ class SongList:
     def __init__(self, save_path, channel, date_of_list):
         self.songs = []
         self.setlist_start = date_of_list
+        self.has_started = False
         self.save_path = save_path + '\\setlists\\' + channel
         self.full_path = self.save_path + '\\' + self.setlist_start.strftime('%Y-%m-%d.json')
 
@@ -77,7 +78,7 @@ class SongList:
         return str(self.json())
 
     def json(self):
-        return {'setlist_start': self.setlist_start.isoformat(), 'songs': [s.json() for s in self.songs]}
+        return {'setlist_start': self.setlist_start.isoformat(), 'has_started': self.has_started, 'songs': [s.json() for s in self.songs]}
 
     def init_dir(self):
         # create directory for setlists if not exist
@@ -90,6 +91,7 @@ class SongList:
                 saved = json.load(f)
                 self.songs = [Song(s) for s in saved['songs']]
                 self.songs.sort(key=lambda x: x.timestamp)
+                self.has_started = saved.get('has_started', False)
                 if saved.get('setlist_start', None) is not None:
                     self.setlist_start = datetime.datetime.fromisoformat(saved['setlist_start'])
 
@@ -167,7 +169,6 @@ def demo_usage():
     print(str(s))
 
 def print_setlist_tabular():
-    from tabulate import tabulate
     today = datetime.date.today()
     setlist = SongList("F:\\twitch", "myanalogjournal_",
                        today)
