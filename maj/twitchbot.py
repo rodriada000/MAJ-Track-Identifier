@@ -48,19 +48,37 @@ class TwitchBot(commands.Bot):
                 ws = self._ws  # this is only needed to send messages within event_ready
                 await ws.send_privmsg(self.config['channel'], "{0} Type '!track' to identify the current song playing.".format(botreplys.get_greeting(datetime.datetime.today())))
 
-    # async def event_message(self, message):
-    #     """
-    #     Runs every time a message is sent in chat.
-    #     """
+    async def event_message(self, message):
+        """
+        Runs every time a message is sent in chat.
+        """
 
-    #     # make sure the bot ignores itself and the streamer
-    #     if message.author.name.lower() == self.config['botUsername'].lower():
-    #         return
+        # make sure the bot ignores itself and the streamer
+        if message.author.name.lower() == self.config['botUsername'].lower():
+            return
 
-    #     await self.handle_commands(message)
-    #     # to send message within event_message: # await ctx.channel.send(ctx.content) #
+        if self.is_bot_mentioned(message.content):
+            ws = self._ws
+            await ws.send_privmsg(self.config['channel'], botreplys.get_random_reply(message.content, message.author.name))
 
-    @commands.command(name='track', aliases=['playing', 'tune', 'TRACK'])
+        await self.handle_commands(message)
+
+    def is_bot_mentioned(self, message):
+        if self.config['botUsername'].lower() not in message.lower():
+            return False # bot not mentioned
+        
+        # look for keywords that can be replied to
+        words = message.split()
+        if words[0] in ["hi", "hey", "howdy", "hello"]:
+            return True
+        elif "good bot" in message or "bad bot" in message:
+            return True
+        elif "dumb" in message and "bot" in message:
+            return True
+
+        return False
+
+    @commands.command(name='track', aliases=['playing', 'tune', 'TRACK', 'thong'])
     async def track(self, ctx):
 
         if self.is_identifying is True or self.twitch_recorder.is_recording or self.music_identifier.is_identifying:
@@ -252,7 +270,7 @@ class TwitchBot(commands.Bot):
 
         if len(chat_msgs) > 1 and chat_msgs[1].isnumeric():
             num_tracks = int(chat_msgs[1])
-            if num_tracks < 1 or num_tracks >= len(self.playlist.songs):
+            if num_tracks < 1 or num_tracks > len(self.playlist.songs):
                 num_tracks = 1 # ignore any bad input and default it to last 1 track 
 
 
@@ -273,7 +291,6 @@ class TwitchBot(commands.Bot):
             msg += song.formatted_str() + SEP_CHAR
 
         await self.send_message(ctx, msg, separator=[SEP_CHAR])
-
 
     @commands.command(name='quiet')
     async def quiet(self, ctx):

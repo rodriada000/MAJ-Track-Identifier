@@ -79,3 +79,15 @@ def get_stream_name_by_day(weekday, default="My Analog Journal"):
     if weekday < 0 or weekday >= len(names):
         return default
     return names[weekday]
+
+def get_random_reply(message, author_name=""):
+    # look for keywords that can be replied to
+    words = message.split()
+    if words[0] in ["hi", "hey", "howdy", "hello"]:
+        return f"{words[0]} there {author_name}!"
+    elif "good bot" in message:
+        return f"thank you {author_name}!"
+    elif "bad bot" in message:
+        return f"awww I'm sorry {author_name}"
+    elif "dumb" in message and "bot" in message:
+        return "Did someone just call me dumb?!"

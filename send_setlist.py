@@ -19,7 +19,6 @@ with open('config.json', 'r') as f:
 if __name__ == "__main__":
 
     loop = asyncio.get_event_loop()        
-    playlist = SongList(config['recordedSavePath'], config['channel'], datetime.datetime.today())
 
     day_of_week = playlist.setlist_start.weekday()
     spotify_playlist = None
@@ -35,6 +34,8 @@ if __name__ == "__main__":
             sleep(60)
     except KeyboardInterrupt:
         pass
+
+    playlist = SongList(config['recordedSavePath'], config['channel'], datetime.datetime.today())
 
     # save setlist to a spotify playlist
     if config.get('spotify') is not None and len(playlist.songs) > 0:
