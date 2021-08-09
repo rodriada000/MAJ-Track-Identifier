@@ -20,7 +20,6 @@ if __name__ == "__main__":
 
     loop = asyncio.get_event_loop()        
 
-    day_of_week = playlist.setlist_start.weekday()
     spotify_playlist = None
     tracks_added = 0
 
@@ -36,6 +35,7 @@ if __name__ == "__main__":
         pass
 
     playlist = SongList(config['recordedSavePath'], config['channel'], datetime.datetime.today())
+    day_of_week = playlist.setlist_start.weekday()
 
     # save setlist to a spotify playlist
     if config.get('spotify') is not None and len(playlist.songs) > 0:

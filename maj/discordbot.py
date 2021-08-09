@@ -28,7 +28,7 @@ class MajBotClient(discord.Client):
         if self.guild is not None:
             channels = await self.guild.fetch_channels()
             for c in channels:
-                if c.name == self.channelName:
+                if self.channelName in c.name:
                     self.channel = c
                     break
 
