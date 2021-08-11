@@ -1,4 +1,6 @@
 import random
+import json
+import datetime
 
 GREETINGS = ["/me has landed!",
              "/me is in the house!",
@@ -47,6 +49,36 @@ WELCOME_GREETINGS = ["Welcome {0} to {1}!"
                     ,"Yo yo yo {0}. Thanks for joining {1}!"
                     ,"Hi {0}! Glad you could make it to {1}!"]
 
+chat_intents = {}
+
+def load_chat_intents(path_to_json):
+    global chat_intents
+    with open(path_to_json, 'r') as f:
+        chat_intents = json.load(f)["intents"]
+    
+    # ensure all patterns are lowercase
+    for intent in chat_intents:
+        intent["patterns"] = [p.lower() for p in intent["patterns"]]
+
+
+def get_intent_tag(message):
+    if message is None or message == "":
+        return None
+
+    for intent in chat_intents:
+        for pattern in intent["patterns"]:
+            if pattern in message.lower():
+                return intent["tag"]
+    
+    return None
+
+def get_intent_response(tag, username="", day_of_week=""):
+    for intent in chat_intents:
+        if tag == intent["tag"]:
+            resp_str = random.choice(intent["responses"])
+            return resp_str.format(username, day_of_week)
+    
+    return None
 
 def get_greeting(date):
     if date.weekday() == 0:
@@ -74,20 +106,27 @@ def get_welcome_greeting(person, day):
     return WELCOME_GREETINGS[random.randint(0, len(WELCOME_GREETINGS) - 1)].format(person, day)
 
 
-def get_stream_name_by_day(weekday, default="My Analog Journal"):
-    names = ["Jazz Club Monday", "", "Soulful Wednesday", "", "Disco Friday"]
+def get_stream_name_by_day(weekday, default="My Analog Journal Stream"):
+    names = ["Jazz Club Monday", default, "Soulful Wednesday", default, "Disco Friday"]
     if weekday < 0 or weekday >= len(names):
         return default
     return names[weekday]
 
-def get_random_reply(message, author_name=""):
+def get_reply_based_on_message(message, author_name="", date_time=None):
     # look for keywords that can be replied to
     words = message.split()
-    if words[0] in ["hi", "hey", "howdy", "hello"]:
-        return f"{words[0]} there {author_name}!"
-    elif "good bot" in message:
-        return f"thank you {author_name}!"
-    elif "bad bot" in message:
-        return f"awww I'm sorry {author_name}"
-    elif "dumb" in message and "bot" in message:
-        return "Did someone just call me dumb?!"
+    stream_day = get_stream_name_by_day(date_time.weekday())
+    
+    tag = get_intent_tag(message)
+    if tag is not None:
+        return get_intent_response(tag, author_name, stream_day)
+    
+    return ""
+
+if __name__ == "__main__":
+    # example of replys
+    load_chat_intents('intents.json')
+    print(get_reply_based_on_message("good bot", "bob", datetime.datetime.today()))
+    print(get_reply_based_on_message("bad bot", "bob", datetime.datetime.today()))
+    print(get_reply_based_on_message("hi", "bob", datetime.datetime.today()))
+

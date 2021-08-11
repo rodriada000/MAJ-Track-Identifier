@@ -59,24 +59,12 @@ class TwitchBot(commands.Bot):
 
         if self.is_bot_mentioned(message.content):
             ws = self._ws
-            await ws.send_privmsg(self.config['channel'], botreplys.get_random_reply(message.content, message.author.name))
+            await ws.send_privmsg(self.config['channel'], botreplys.get_reply_based_on_message(message.content, message.author.name, self.playlist.setlist_start))
 
         await self.handle_commands(message)
 
     def is_bot_mentioned(self, message):
-        if self.config['botUsername'].lower() not in message.lower():
-            return False # bot not mentioned
-        
-        # look for keywords that can be replied to
-        words = message.split()
-        if words[0] in ["hi", "hey", "howdy", "hello"]:
-            return True
-        elif "good bot" in message or "bad bot" in message:
-            return True
-        elif "dumb" in message and "bot" in message:
-            return True
-
-        return False
+        return self.config['botUsername'].lower() in message.lower()
 
     @commands.command(name='track', aliases=['playing', 'tune', 'TRACK', 'thong'])
     async def track(self, ctx):

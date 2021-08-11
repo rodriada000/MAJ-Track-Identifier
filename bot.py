@@ -7,6 +7,7 @@ from maj.songlist import SongList
 from maj.vpnrotator import VpnRotator
 from maj.pollvote import MajPoll
 from maj.twitchbot import TwitchBot
+from maj.utils.botreplys import load_chat_intents
 
 config = {}
 
@@ -42,7 +43,9 @@ bot = TwitchBot(
 
 if __name__ == "__main__":
 
-    token_updated = bot.twitch_recorder.authorize(config['botToken']['oauthToken'], config['botToken']['expirationDate'])
+    load_chat_intents('./maj/utils/intents.json')
+
+    token_updated = bot.twitch_recorder.authorize(config['botToken']['oauthToken'], config['botToken']['expirationDate'])    
 
     # save new oauth token if fetched new one
     if token_updated:
