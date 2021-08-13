@@ -65,9 +65,14 @@ def get_intent_tag(message):
     if message is None or message == "":
         return None
 
+    words = [m.lower() for m in message.split()]
+
     for intent in chat_intents:
         for pattern in intent["patterns"]:
-            if pattern in message.lower():
+            pattern_words = pattern.split()
+            if len(pattern_words) > 1 and pattern in message.lower():
+                return intent["tag"]
+            elif len(pattern_words) == 1 and pattern in words:
                 return intent["tag"]
     
     return None
