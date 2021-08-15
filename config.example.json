@@ -1,5 +1,7 @@
 {
     "print_only": false,
+    "enabledOffline": false,
+    "identifyCooldown": 45,
     "botIrcToken": "oauth:getthisfromhere",
     "botUsername": "majmusicbot",
     "botClientID": "getThisFromTwitchDevConsole",
