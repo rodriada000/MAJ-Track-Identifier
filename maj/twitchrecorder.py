@@ -81,10 +81,10 @@ class TwitchRecorder:
         # print(stream_json)
 
         if len(stream_json['data']) == 1:
-            print(self.username + ' is live: ' + stream_json['data'][0]['title'] + ' playing ' + stream_json['data'][0]['game_name'])
+            # print(self.username + ' is live: ' + stream_json['data'][0]['title'] + ' playing ' + stream_json['data'][0]['game_name'])
             return stream_json['data'][0]
         else:
-            print(self.username + ' is not live')
+            # print(self.username + ' is not live')
             return None
 
 

@@ -2,6 +2,7 @@ import datetime
 import os
 import json
 import csv
+import string
 import imgkit
 from tabulate import tabulate
 from maj.utils.botreplys import get_stream_name_by_day
@@ -100,14 +101,18 @@ class SongList:
             f.write(json.dumps(self.json(), indent=4))
 
     def add(self, song):
+        to_add_title = song.title.lower().translate(str.maketrans('', '', string.punctuation))
+
         for s in self.songs:
-            if s.title == song.title and s.artists == song.artists:
+            title_lower = s.title.lower().translate(str.maketrans('', '', string.punctuation))
+            if title_lower == to_add_title and s.artists == song.artists:
                 s.last_timestamp = song.last_timestamp
                 self.save_to_file()
-                return  # already added so just update last identified date 
+                return False  # already added so just update last identified date 
 
         self.songs.append(song)
         self.save_to_file()
+        return True
 
     def get_last_song_msg(self):
         if len(self.songs) > 0:
@@ -192,6 +197,7 @@ def demo_png_save():
 
 
 # if __name__ == "__main__":
+#     demo_usage()
 #     today = datetime.datetime(2021,6,30,14,0)
 #     s = SongList("F:\\twitch", "myanalogjournal_", today)
 #     print(s.get_last_song_msg())

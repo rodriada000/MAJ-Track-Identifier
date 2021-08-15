@@ -6,13 +6,23 @@
             "responses": ["Howdy Partner! Welcome to another {1}", "Hello {0}", "How are you doing {0}?", "Greetings {0}!", "How do you do {0}?", "Hi there {0}!", "Good to see you {0}!"]
         },
         {
+            "tag": "identify",
+            "patterns": ["what song is this", "song?", "whats playing?"],
+            "responses": []
+        },
+        {
+            "tag": "compliment",
+            "patterns": ["You look nice today"],
+            "responses": ["aw shucks.. thanks :)"]
+        },
+        {
             "tag": "goodbye",
             "patterns": [ "bye", "g2g", "see ya", "adios", "cya", "peace"],
             "responses": ["It was nice being in your presence {0}", "See you later {0}", "Speak soon {0}!", "Hope you come back for another {1} myana2Hearts"]
         },
         {
             "tag": "good",
-            "patterns": [ "good bot", "nice job", "there you go", "got it"],
+            "patterns": [ "good bot", "nice job", "there you go", "got it", "You did well today"],
             "responses": ["Thank you {0}!", "Glad I could help out {0} :)"]
         },
         {
@@ -22,7 +32,7 @@
         },
         {
             "tag": "love",
-            "patterns": [ "love you", "we love bot", "i love bot"],
+            "patterns": [ "love you", "we love bot", "i love bot", "Much love"],
             "responses": ["Right back atcha {0} <3", "Yoooo much love {0} <3", "myana2Hearts {0} myana2Hearts", "I love you too {0}. I think... I'm just a bot."]
         },
         {

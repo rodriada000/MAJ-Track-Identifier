@@ -6,6 +6,7 @@ import asyncio
 import random
 from time import sleep
 from twitchio.ext import commands
+from twitchio.dataclasses import Message
 from maj.identifier import Identifier
 from maj.twitchrecorder import TwitchRecorder
 from maj.songlist import Song, SongList
@@ -14,6 +15,7 @@ from maj.discordbot import MajBotClient
 from maj.pollvote import MajPoll
 from maj.utils import botreplys
 from maj.utils.spotifyclient import SpotifyClient
+
 
 SEP_CHAR = ' ██   '
 
@@ -45,31 +47,37 @@ class TwitchBot(commands.Bot):
             self.has_greeted = True
 
             if self.config['print_only'] is False:
-                ws = self._ws  # this is only needed to send messages within event_ready
-                await ws.send_privmsg(self.config['channel'], "{0} Type '!track' to identify the current song playing.".format(botreplys.get_greeting(datetime.datetime.today())))
+                await self.send_channel_message("{0} Type '!track' to identify the current song playing.".format(botreplys.get_greeting(datetime.datetime.today())))
 
     async def event_message(self, message):
         """
         Runs every time a message is sent in chat.
         """
 
-        # make sure the bot ignores itself and the streamer
+        # make sure the bot ignores itself
         if message.author.name.lower() == self.config['botUsername'].lower():
             return
 
-        if self.is_bot_mentioned(message.content):
-            ws = self._ws
-            await ws.send_privmsg(self.config['channel'], botreplys.get_reply_based_on_message(message.content, message.author.name, self.playlist.setlist_start))
+
+        if botreplys.get_intent_tag(message.content) == "identify":
+            ctx = await self.get_context(message)
+            await self.get_track_playing(ctx)
+            
+        elif self.is_bot_mentioned(message.content):
+            ctx = await self.get_context(message)
+            await self.send_message(ctx, botreplys.get_reply_based_on_message(message.content, message.author.name, self.playlist.setlist_start))
 
         await self.handle_commands(message)
 
     def is_bot_mentioned(self, message):
         return self.config['botUsername'].lower() in message.lower()
 
-    @commands.command(name='track', aliases=['playing', 'tune', 'TRACK', 'thong'])
+    @commands.command(name='track', aliases=['playing', 'tune', 'TRACK', 'thong', 'song'])
     async def track(self, ctx):
+        await self.get_track_playing(ctx)
 
-        if self.is_identifying is True or self.twitch_recorder.is_recording or self.music_identifier.is_identifying:
+    async def get_track_playing(self, ctx = None):
+        if self.is_identifying is True:
             print('already trying to identify!')
             self.try_count = 0 # reset count so bot will keep trying if user put in '!track' again
             self.trigger_count += 1
@@ -78,33 +86,16 @@ class TwitchBot(commands.Bot):
                 self.trigger_count = 0 # reset count so message sent every 5 times someone sends '!track' 
                 await self.send_message(ctx, botreplys.get_already_listening_reply())
 
-            return
+        await self.send_lastsong_message(ctx)
 
-        if len(self.playlist.songs) > 0:
-            elapsedTime = datetime.datetime.now() - self.playlist.songs[-1].last_timestamp
-            if elapsedTime.total_seconds() < 30:
-                print("already identified a song less than 30 seconds ago ...")
-                await self.send_message(ctx, self.playlist.get_last_song_msg())
-                return
-
-        self.trigger_count = 0
+    async def try_identify(self, ctx = None):
         self.is_identifying = True
 
-        found = False
-        self.try_count = 0
-        while found is False and self.try_count < 10:
-            found = await self.try_identify(ctx)
-            await asyncio.sleep(5)
-            self.try_count += 1
-        
-        self.is_identifying = False
-
-        if not found:
-            print('exceeded number of retrys ...')
-
-    async def try_identify(self, ctx):
-
         try:
+
+            if ctx is None:
+                ctx = await self.get_context(Message(channel=self.get_channel(self.config['channel']), content="", author=self.config['botUsername'], raw_data="", tags={}))
+
             file_path = await self.twitch_recorder.record(20)
 
             if self.twitch_recorder.is_blocked and self.config['enableVpnRotation'] and self.vpn is not None:
@@ -128,6 +119,7 @@ class TwitchBot(commands.Bot):
 
         if file_path is None or not os.path.exists(file_path):
             await self.send_message(ctx, botreplys.get_trouble_listening_reply(), force_quiet=self.is_silenced)
+            self.is_identifying = False
             return False
 
         try:
@@ -141,13 +133,16 @@ class TwitchBot(commands.Bot):
         if info is None:
             msg = botreplys.get_trouble_listening_reply() if self.twitch_recorder.is_blocked else botreplys.get_unknown_song_reply()
             await self.send_message(ctx, msg, force_quiet=self.is_silenced)
+            self.is_identifying = False
             return False
             
         song = Song(info)
-        self.playlist.add(song)
-        msg = f'Currently playing: "{song.title}" ║ Artist(s): {", ".join(song.artists)}  ║ Album: {song.album}'
+        was_added = self.playlist.add(song)
+        if was_added:
+            msg = f'Currently playing: "{song.title}" ║ Artist(s): {", ".join(song.artists)}  ║ Album: {song.album}'
+            await self.send_message(ctx, msg)
         
-        await self.send_message(ctx, msg)
+        self.is_identifying = False
         return True
 
     @commands.command(name='majhelp', aliases=['bothelp'])
@@ -249,11 +244,17 @@ class TwitchBot(commands.Bot):
 
     @commands.command(name="lastsong", aliases=["last"])
     async def lastsong(self,ctx):
+        await self.send_lastsong_message(ctx, ctx.content)
+        
+    async def send_lastsong_message(self, ctx = None, message=""):
 
         if len(self.playlist.songs) == 0:
             return
 
-        chat_msgs = ctx.content.split(' ')
+        if ctx is None:
+            ctx = await self.get_context(Message(channel=self.get_channel(self.config['channel']), content="", author=self.config['botUsername'], raw_data="", tags={}))
+
+        chat_msgs = message.split(' ')
         num_tracks = 1
 
         if len(chat_msgs) > 1 and chat_msgs[1].isnumeric():
@@ -336,10 +337,15 @@ class TwitchBot(commands.Bot):
             greeting = botreplys.get_greeting(today)
 
         await self.send_message(ctx, greeting)
+
+    async def send_channel_message(self, message, force_quiet=False):
+        print(message)
+        if not force_quiet:
+            ws = self._ws
+            await ws.send_privmsg(self.config['channel'], message)
     
     async def send_message_batch(self, ctx, messages):
         for m in messages:
-            print(len(m))
             await ctx.send(m)
             await asyncio.sleep(random.uniform(2,3.5))
 
@@ -377,5 +383,4 @@ class TwitchBot(commands.Bot):
                 message = message.replace(sub_msg, "")
 
             await self.send_message_batch(ctx, messages)
-
 

@@ -121,7 +121,7 @@ def get_reply_based_on_message(message, author_name="", date_time=None):
     # look for keywords that can be replied to
     words = message.split()
     stream_day = get_stream_name_by_day(date_time.weekday())
-    
+
     tag = get_intent_tag(message)
     if tag is not None:
         return get_intent_response(tag, author_name, stream_day)
