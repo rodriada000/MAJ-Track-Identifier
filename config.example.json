@@ -20,11 +20,14 @@
     "vpnUserPwdConfigPath": "",
     "spotify": {
         "clientID": "GetFromSpotifyDashboard",
-        "clientSecret": "GetFromSpotifyDashboard"
+        "clientSecret": "GetFromSpotifyDashboard",
+        "enableMegamix": false
     },
     "discord": {
         "botToken": "getThisFromDiscordAppDashboard",
         "guildName": "My Analog Journal's server",
         "channelName": "livestream"
-    }
+    },
+    "loggingFormat": "%(asctime)s [%(threadName)-10.10s] [%(levelname)-4.4s]  %(message)s",
+    "loggingLevel": 20
 }

@@ -1,6 +1,9 @@
 import json
 import discord
 import asyncio
+import logging
+
+log = logging.getLogger(__name__)
 
 class MajBotClient(discord.Client):
     def __init__(self, token, guildName, channelName):
@@ -16,7 +19,7 @@ class MajBotClient(discord.Client):
         if not self.is_logged_in:
             await self.login(self.token)
             self.is_logged_in = True
-            print("connected ...")
+            log.info("connected ...")
 
     async def init_channel(self):
         guilds = await self.fetch_guilds(limit=150).flatten()
@@ -35,10 +38,10 @@ class MajBotClient(discord.Client):
         return self.channel is not None
 
     async def on_ready(self):
-        print('Logged in as')
-        print(self.user.name)
-        print(self.user.id)
-        print('------')
+        log.info('Logged in as')
+        log.info(self.user.name)
+        log.info(self.user.id)
+        log.info('------')
 
     async def close_client(self):
         try:
@@ -53,7 +56,7 @@ class MajBotClient(discord.Client):
         is_ready = await self.init_channel()
         
         if not is_ready:
-            print("could not get channel.")
+            log.warning("could not get channel.")
             return
 
         if filepath is None:

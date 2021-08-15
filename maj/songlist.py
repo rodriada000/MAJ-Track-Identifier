@@ -31,7 +31,13 @@ class Song:
         return str(self.json())
 
     def json(self):
-        return {'title': self.title, 'album': self.album, 'artists': self.artists, 'duration_s': self.duration_s, 'timestamp': self.timestamp.isoformat(), 'last_timestamp': self.last_timestamp.isoformat()}
+        return {'title': self.title,
+                'album': self.album,
+                'artists': self.artists,
+                'duration_s': self.duration_s,
+                'timestamp': self.timestamp.isoformat(),
+                'last_timestamp': self.last_timestamp.isoformat(),
+                'added_by': self.added_by}
 
     def formatted_str(self, include_timestamp=False):
         if '.' in self.title:
@@ -79,7 +85,9 @@ class SongList:
         return str(self.json())
 
     def json(self):
-        return {'setlist_start': self.setlist_start.isoformat(), 'has_started': self.has_started, 'songs': [s.json() for s in self.songs]}
+        return {'setlist_start': self.setlist_start.isoformat(),
+                'has_started': self.has_started,
+                'songs': [s.json() for s in self.songs]}
 
     def init_dir(self):
         # create directory for setlists if not exist

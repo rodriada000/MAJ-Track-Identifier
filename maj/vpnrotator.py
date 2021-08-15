@@ -6,10 +6,12 @@ import subprocess
 import datetime
 import asyncio
 import random
-
+import logging
 from maj.utils import fileutils
 
 DETACHED_PROCESS = 0x00000008
+
+log = logging.getLogger(__name__)
 
 # openvpn --config [Path\To\Config] --auth-user-pass [Path\To\userpwd.conf]'
 
@@ -25,9 +27,8 @@ class VpnRotator:
 
     def connect(self, ovpn_path):
         if self.is_connected is False:
-            print("connecting to {0} ...".format(ovpn_path))
             cmds = ["openvpn", "--config", ovpn_path, "--auth-user-pass", self.conf_path]
-            print(" ".join(cmds))
+            logging.info(f"connecting to ... {' '.join(cmds)}")
             self.vpn_proc = subprocess.Popen(cmds, shell=False, stdin=None, stdout=None, stderr=None, close_fds=True, creationflags=DETACHED_PROCESS)
             self.is_connected = True
 

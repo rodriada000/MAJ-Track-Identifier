@@ -1,10 +1,12 @@
-from spotipy import oauth2, Spotify
 import json
 import datetime
 import time
 import random
+import logging
+from spotipy import oauth2, Spotify
 from maj.songlist import SongList,Song
 
+log = logging.getLogger(__name__)
 
 CACHE_PATH = ".cache"
 IGNORE_WORDS = ["(Original Mix)", "(Remix)", "(REMIX)"]
@@ -25,9 +27,9 @@ class SpotifyClient:
 
 
     def set_token_info(self):
-        print('no cached token found. Use web browser to get refresh/access token.')
+        log.info('no cached token found. Use web browser to get refresh/access token.')
         auth_url = self.oauth.get_authorize_url()
-        print(auth_url)
+        log.info(auth_url)
         response = input('Paste the above link into your browser, then paste the redirect url here: ')
 
         code = self.oauth.parse_response_code(response)
@@ -36,7 +38,7 @@ class SpotifyClient:
 
     def get_access_token(self):
         if self.oauth.is_token_expired(self.token_info):
-            print('access token is expired. refreshing ...')
+            log.info('access token is expired. refreshing ...')
             self.token_info = self.oauth.refresh_access_token(self.token_info['refresh_token'])
 
         self.token = self.token_info['access_token']
@@ -108,7 +110,7 @@ class SpotifyClient:
 
         for song in setlist.songs:
             if verbose:
-                print(f"searching for {song.title} ...")
+                log.info(f"searching for {song.title} ...")
 
             result = self.search_tracks(title=song.title, artist=song.artists[0])
             if result is not None:
@@ -119,7 +121,13 @@ class SpotifyClient:
             return None, 0 # no songs found that can be added to a playlist
 
         playlist = self.create_playlist(playlist_name, "Automatically generated from python - MAJ Music bot", is_public, is_collab)
-        self.add_track_to_playlist(playlist['id'], [t['id'] for t in tracks])
+
+        unique_ids = []
+        for t in tracks:
+            if t['id'] not in unique_ids:
+                unique_ids.append(t['id'])
+
+        self.add_track_to_playlist(playlist['id'], unique_ids)
 
         return playlist, len(tracks)
 
@@ -135,10 +143,10 @@ class SpotifyClient:
             return # nothing to add
 
         try:
-            print(f'adding ... {to_add}')
+            log.info(f'adding ... {to_add}')
             self.add_track_to_playlist(target_playlist_id, to_add)
         except Exception as e:
-            print(f'    failed to add: {str(e)}')
+            log.error(f'    failed to add: {str(e)}')
 
 
     def get_playlist_ids(self, keyword):

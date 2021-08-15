@@ -4,6 +4,7 @@ import datetime
 import json
 import asyncio
 import random
+import logging
 from time import sleep
 from twitchio.ext import commands
 from twitchio.dataclasses import Message
@@ -15,6 +16,8 @@ from maj.discordbot import MajBotClient
 from maj.pollvote import MajPoll
 from maj.utils import botreplys
 from maj.utils.spotifyclient import SpotifyClient
+
+log = logging.getLogger(__name__)
 
 
 SEP_CHAR = ' ██   '
@@ -42,7 +45,7 @@ class TwitchBot(commands.Bot):
         Called once when the bot goes online.
         """
 
-        print(f"{self.config['botUsername']} is online!")
+        log.info(f"{self.config['botUsername']} is online!")
         if self.has_greeted is False:
             self.has_greeted = True
 
@@ -58,14 +61,18 @@ class TwitchBot(commands.Bot):
         if message.author.name.lower() == self.config['botUsername'].lower():
             return
 
-
         if botreplys.get_intent_tag(message.content) == "identify":
             ctx = await self.get_context(message)
             await self.get_track_playing(ctx)
             
         elif self.is_bot_mentioned(message.content):
             ctx = await self.get_context(message)
-            await self.send_message(ctx, botreplys.get_reply_based_on_message(message.content, message.author.name, self.playlist.setlist_start))
+            response = botreplys.get_reply_based_on_message(message.content, message.author.name, self.playlist.setlist_start)
+
+            if response != "":
+                await self.send_message(ctx, response)
+            else:
+                log.info(f'[unknownMention] {message.content}')
 
         await self.handle_commands(message)
 
@@ -78,7 +85,7 @@ class TwitchBot(commands.Bot):
 
     async def get_track_playing(self, ctx = None):
         if self.is_identifying is True:
-            print('already trying to identify!')
+            log.info('already trying to identify!')
             self.try_count = 0 # reset count so bot will keep trying if user put in '!track' again
             self.trigger_count += 1
 
@@ -89,9 +96,14 @@ class TwitchBot(commands.Bot):
         await self.send_lastsong_message(ctx)
 
     async def try_identify(self, ctx = None):
-        self.is_identifying = True
 
         try:
+            if not self.twitch_recorder.is_user_online():
+                log.warning(f"can not record because {self.config['channel']} is not online")
+                return False
+
+            self.is_identifying = True
+
 
             if ctx is None:
                 ctx = await self.get_context(Message(channel=self.get_channel(self.config['channel']), content="", author=self.config['botUsername'], raw_data="", tags={}))
@@ -99,7 +111,7 @@ class TwitchBot(commands.Bot):
             file_path = await self.twitch_recorder.record(20)
 
             if self.twitch_recorder.is_blocked and self.config['enableVpnRotation'] and self.vpn is not None:
-                print("recording blocked. switching vpn ...")
+                log.info("recording blocked. switching vpn ...")
                 # connect to a different vpn and try again
                 if self.vpn.is_connected: 
                     self.vpn.disconnect()
@@ -108,12 +120,12 @@ class TwitchBot(commands.Bot):
                 self.vpn.connect_random()
                 await asyncio.sleep(7) # sleep to let init/connect 
 
-                print ('re-recording audio ...')
+                log.info('re-recording audio ...')
                 file_path = await self.twitch_recorder.record(20)
-                print('blocked again: {0}'.format(self.twitch_recorder.is_blocked))
+                log.warning('blocked again: {0}'.format(self.twitch_recorder.is_blocked))
 
         except Exception as e:
-            print(e)
+            log.error(e)
             self.twitch_recorder.is_recording = False
             file_path = None
 
@@ -126,7 +138,7 @@ class TwitchBot(commands.Bot):
             response = self.music_identifier.identify(file_path)
             info = self.music_identifier.get_song_info_from_response(response)
         except Exception as e:
-            print(e)
+            log.error(e)
             self.music_identifier.is_identifying = False
             info = None
 
@@ -163,7 +175,7 @@ class TwitchBot(commands.Bot):
         if len(self.playlist.songs) > 0:
             elapsedTime = datetime.datetime.now() - self.playlist.songs[-1].last_timestamp
             if elapsedTime.total_seconds() < 15:
-                print("already added or identified a song less than 15 seconds ago ...")
+                log.info("already added or identified a song less than 15 seconds ago ...")
                 await self.send_message(ctx, self.playlist.get_last_song_msg())
                 return
 
@@ -339,7 +351,7 @@ class TwitchBot(commands.Bot):
         await self.send_message(ctx, greeting)
 
     async def send_channel_message(self, message, force_quiet=False):
-        print(message)
+        log.info(message)
         if not force_quiet:
             ws = self._ws
             await ws.send_privmsg(self.config['channel'], message)
@@ -350,7 +362,7 @@ class TwitchBot(commands.Bot):
             await asyncio.sleep(random.uniform(2,3.5))
 
     async def send_message(self, ctx, message, separator=[" "], force_quiet=False):
-        print(message)
+        log.info(message)
         if self.config['print_only'] or force_quiet:
             return
 

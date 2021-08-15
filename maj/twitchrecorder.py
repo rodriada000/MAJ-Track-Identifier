@@ -11,8 +11,11 @@ import subprocess
 import datetime
 import getopt
 import asyncio
+import logging
 from streamlink import Streamlink
 from maj.vpnrotator import VpnRotator
+
+log = logging.getLogger(__name__)
 
 SIZE_THRESHOLD = 1000000 # size of file in bytes (when to stop recording)
 
@@ -49,7 +52,6 @@ class TwitchRecorder:
             r = requests.post('https://id.twitch.tv/oauth2/token', body)
 
             keys = r.json()
-            print(keys) # for debugging
 
             expires_in = keys.get('expires_in', 0) # this is in seconds
 
@@ -57,7 +59,7 @@ class TwitchRecorder:
             self.expiration_date = datetime.datetime.now() + datetime.timedelta(0, expires_in)
             return True
         except Exception as e:
-            print(e)
+            log.error(e)
             return False
 
     def init_paths(self):
@@ -68,6 +70,9 @@ class TwitchRecorder:
         if(os.path.isdir(self.recorded_path) is False):
             os.makedirs(self.recorded_path)
 
+    def is_user_online(self):
+        return self.check_user() is not None
+
     def check_user(self):
         headers = {
             'Client-ID': self.client_id,
@@ -77,14 +82,9 @@ class TwitchRecorder:
         stream = requests.get('https://api.twitch.tv/helix/streams?user_login=' + self.username, headers=headers)
         stream_json = stream.json()
 
-
-        # print(stream_json)
-
         if len(stream_json['data']) == 1:
-            # print(self.username + ' is live: ' + stream_json['data'][0]['title'] + ' playing ' + stream_json['data'][0]['game_name'])
             return stream_json['data'][0]
         else:
-            # print(self.username + ' is not live')
             return None
 
 
@@ -96,7 +96,7 @@ class TwitchRecorder:
         
         recorded_filename = os.path.join(self.recorded_path, filename)
         
-        print("output path: " + recorded_filename)
+        log.info("output path: " + recorded_filename)
 
         self.is_recording = True
         self.is_blocked = False
@@ -115,13 +115,13 @@ class TwitchRecorder:
             if os.path.exists(recorded_filename):
                 if os.path.getsize(recorded_filename) > last_size:
                     last_size = os.path.getsize(recorded_filename)
-                    print(last_size)
+                    log.debug(last_size)
 
                 if last_size > SIZE_THRESHOLD: 
                     self.is_blocked = True
                     break # stop recording after filesize limit reached
         
-        print('\n\nkilling streamlink ...')
+        log.info('\n\nkilling streamlink ...')
         p.kill()
         p.wait()
 

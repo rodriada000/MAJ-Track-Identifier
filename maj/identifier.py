@@ -6,8 +6,10 @@ import sys
 import time
 import requests
 import json
+import logging
 from maj.utils.fileutils import get_all_files
 
+log = logging.getLogger(__name__)
 
 class Identifier:
     def __init__(self, key, secret, url):
@@ -54,16 +56,16 @@ class Identifier:
             response = r.json()
             return response
         else:
-            print(str(r.status_code) + ' - ' + r.reason)
+            log.warning(str(r.status_code) + ' - ' + r.reason)
             return None
 
     def get_song_info_from_response(self, response):
         if response is None or response['status']['msg'] != "Success":
-            print(response)
+            log.warning(response)
             return None
 
         if len(response['metadata']['music']) < 1:
-            print(response)
+            log.info(response)
             return None
         else:
             song = response['metadata']['music'][0]

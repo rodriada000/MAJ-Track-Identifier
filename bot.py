@@ -1,6 +1,9 @@
 import datetime
 import json
 import asyncio
+import logging
+from logging.handlers import RotatingFileHandler
+from sys import stdout
 from time import sleep
 from maj.identifier import Identifier
 from maj.twitchrecorder import TwitchRecorder
@@ -10,10 +13,25 @@ from maj.pollvote import MajPoll
 from maj.twitchbot import TwitchBot
 from maj.utils.botreplys import load_chat_intents, get_reply_based_on_message
 
+DEFAULT_FMT = "%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s"
+
 config = {}
 
 with open('config.json', 'r') as f:
     config = json.load(f)
+
+logFormatter = logging.Formatter(config.get("loggingFormat", DEFAULT_FMT))
+logger = logging.getLogger()
+logger.setLevel(config.get("loggingLevel", logging.INFO))
+
+
+fileHandler = RotatingFileHandler('bot.log', mode='a', maxBytes=5*1024*1024, backupCount=1, encoding='utf-8', delay=0)
+fileHandler.setFormatter(logFormatter)
+logger.addHandler(fileHandler)
+
+consoleHandler = logging.StreamHandler(stdout)
+consoleHandler.setFormatter(logFormatter)
+logger.addHandler(consoleHandler)
 
 # setup vpn rotator to connect to different vpns when twitch recording is blocked
 vpn = VpnRotator(config['vpnConfigFolders'], config['vpnUserPwdConfigPath'])
@@ -29,14 +47,13 @@ music_identifier = Identifier(config['acrKey'], config['acrSecret'], config['acr
 
 bot = None
 
-async def try_indentify():
+async def identify_on_interval():
     if bot.is_identifying:
         return
 
-
     while True:
         await bot.try_identify()
-        print('cooling down until next check ...')
+        logger.info('cooling down until next check ...')
         await asyncio.sleep(config.get("identifyCooldown", 30))
 
 async def run_bot():
@@ -58,16 +75,16 @@ async def run_bot():
         )
 
         running_task = asyncio.create_task(bot.start())
-        indentify_task = asyncio.create_task(try_indentify())
+        indentify_task = asyncio.create_task(identify_on_interval())
 
         try:
-            print('waiting for channel to be offline ...')
-            while bot.twitch_recorder.check_user() is not None or config.get('enabledOffline', False):
+            logger.info('waiting for channel to be offline ...')
+            while bot.twitch_recorder.is_user_online() or config.get('enabledOffline', False):
                 await asyncio.sleep(60)
         except Exception:
             pass
 
-        print("channel offline. closing down ...")
+        logger.info("channel offline. closing down ...")
 
         await bot.send_channel_message(get_reply_based_on_message("bye", "everyone", bot.playlist.setlist_start))
 
@@ -76,10 +93,10 @@ async def run_bot():
         try:
             await running_task
         except asyncio.CancelledError:
-            print("canceled bot task")
+            logger.info("canceled bot task")
 
     except Exception as e:
-        print(f"run_bot error: {e}")
+        logger.error(f"run_bot error: {e}")
         pass
 
 async def shutdown(loop):
@@ -99,17 +116,18 @@ async def main():
 
     # save new oauth token if fetched new one
     if token_updated:
+        logger.info('twitch oauth token update ...')
         config['botToken']['oauthToken'] = twitch_recorder.oauth_token
         config['botToken']['expirationDate'] = twitch_recorder.expiration_date.strftime("%Y-%m-%d")
         with open('config.json', 'w') as f:
             f.write(json.dumps(config, indent = 4))
 
     try:
-        while twitch_recorder.check_user() is None and not config.get('enabledOffline', False):
-            print('waiting for channel to be online ...')
+        while not twitch_recorder.is_user_online() and not config.get('enabledOffline', False):
+            logger.info('waiting for channel to be online ...')
             await asyncio.sleep(60)
     except Exception as e:
-        print(f"error while waiting: {e}")
+        logger.error(f"error while waiting: {e}")
 
     # update the datetime to match when user goes online
     if not playlist.has_started:
@@ -121,13 +139,13 @@ async def main():
         bot_task = asyncio.create_task(run_bot())
         await bot_task
     except Exception as e:
-        print(f"bot_task ex thrown: {e}")
+        logger.warning(f"bot_task ex thrown: {e}")
 
     if vpn is not None and vpn.is_connected:
-        print("vpn disconnected ...")
+        logger.info("vpn disconnected ...")
         vpn.disconnect()
     
-    print("end of main.")
+    logger.info("end of main.")
  
 
 if __name__ == "__main__":
@@ -138,4 +156,4 @@ if __name__ == "__main__":
     finally:
         loop.run_until_complete(shutdown(loop))
         loop.close()
-        print("Successfully shutdown ...")
+        logger.info("Successfully shutdown ...")

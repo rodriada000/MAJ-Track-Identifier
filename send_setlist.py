@@ -1,6 +1,8 @@
 import datetime
 import json
 import asyncio
+import logging
+from sys import stdout
 from os import path
 from time import sleep
 from maj.songlist import Song,SongList
@@ -8,13 +10,7 @@ from maj.discordbot import MajBotClient
 from maj.twitchrecorder import TwitchRecorder
 from maj.utils.spotifyclient import SpotifyClient
 from maj.utils.botreplys import get_stream_name_by_day
-
-config = {}
-
-with open('config.json', 'r') as f:
-    config = json.load(f)
-
-
+from bot import logger, config
 
 if __name__ == "__main__":
 
@@ -28,13 +24,13 @@ if __name__ == "__main__":
     twitch_recorder.authorize(config['botToken']['oauthToken'], config['botToken']['expirationDate'])
 
     try:
-        while twitch_recorder.check_user() is not None:
-            print('waiting for channel to be offline ...')
+        while twitch_recorder.is_user_online():
+            logger.info('waiting for channel to be offline ...')
             sleep(60)
     except KeyboardInterrupt:
         pass
 
-    playlist = SongList(config['recordedSavePath'], config['channel'], datetime.datetime.today())
+    playlist = SongList(config['recordedSavePath'], config['channel'], datetime.datetime.strptime('2021-08-13', "%Y-%m-%d"))
     day_of_week = playlist.setlist_start.weekday()
 
     # save setlist to a spotify playlist
@@ -43,22 +39,23 @@ if __name__ == "__main__":
         
         prefix = f"MAJ {get_stream_name_by_day(day_of_week)} Setlist"
 
-        print('generating spotify playlist ...')
+        logger.info('generating spotify playlist ...')
         spotify_playlist, tracks_added = spotify_client.create_setlist_playlist(playlist, name_prefix=prefix, is_public=False, is_collab=True, verbose=True)
-        print(spotify_playlist)
+        logger.info(spotify_playlist)
 
-        print('adding to megamix ...')
-        megamix_id = spotify_client.get_playlist_ids(f'MAJ {get_stream_name_by_day(day_of_week)} Megamix')[0]
-        spotify_client.merge_playlists(megamix_id, spotify_playlist['id'])
+        if config['spotify'].get('enableMegamix', True):
+            logger.info('adding to megamix ...')
+            megamix_id = spotify_client.get_playlist_ids(f'MAJ {get_stream_name_by_day(day_of_week)} Megamix')[0]
+            spotify_client.merge_playlists(megamix_id, spotify_playlist['id'])
 
     # post spotify playlist and image of playlist to discord
     if config.get('discord') is not None and len(playlist.songs) > 0:
 
-        print('generating png ...')
+        logger.info('generating png ...')
         png_filename = 'setlist.png'
         playlist.save_setlist_png(output_path=png_filename)
 
-        print('generating csv ...')
+        logger.info('generating csv ...')
         path_to_csv = playlist.save_setlist_csv()
 
         msg_content = f'{get_stream_name_by_day(day_of_week)} {playlist.setlist_start.strftime("%Y-%m-%d")}'
@@ -68,8 +65,8 @@ if __name__ == "__main__":
 
         discord_bot = MajBotClient(token=config['discord']['botToken'], guildName=config['discord']['guildName'], channelName=config['discord']['channelName'])
 
-        print('sending discord message ...')
-        print(msg_content)
+        logger.info('sending discord message ...')
+        logger.info(msg_content)
         loop.run_until_complete(discord_bot.send_message(msg_content, png_filename))
         loop.run_until_complete(discord_bot.send_message("", path_to_csv, path.basename(path_to_csv)))
 
