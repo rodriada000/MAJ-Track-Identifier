@@ -281,7 +281,7 @@ class TwitchBot(commands.Bot):
             msg_reply = f"The last {num_tracks} tracks played --> "
             for i in range(1, num_tracks + 1):
                 song_info = self.playlist.songs[-i].formatted_str()
-                msg_reply += song_info + f' @ {self.playlist.songs[-i].get_last_identified_in_minutes()}{SEP_CHAR}'
+                msg_reply += song_info + f' @ {self.playlist.songs[-i].get_last_identified_str()}{SEP_CHAR}'
 
             await self.send_message(ctx, msg_reply, separator=[SEP_CHAR])
 
