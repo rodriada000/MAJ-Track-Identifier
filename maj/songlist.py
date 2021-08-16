@@ -39,6 +39,9 @@ class Song:
                 'last_timestamp': self.last_timestamp.isoformat(),
                 'added_by': self.added_by}
 
+    def get_current_playing_msg(self):
+        return f'Currently playing: "{self.title}" ║ Artist(s): {", ".join(self.artists)}  ║ Album: {self.album}'
+
     def formatted_str(self, include_timestamp=False):
         if '.' in self.title:
             msg = '"{0}" ║ '.format(self.title)
@@ -58,7 +61,11 @@ class Song:
 
         return msg
 
-    def get_last_identified_in_minutes(self):
+    def get_last_identified_in_seconds(self):
+        elapsedTime = datetime.datetime.now() - self.last_timestamp
+        return elapsedTime.total_seconds()
+
+    def get_last_identified_str(self):
         elapsedTime = datetime.datetime.now() - self.last_timestamp
         mins, sec = divmod(elapsedTime.total_seconds(), 60)
 
@@ -124,9 +131,13 @@ class SongList:
 
     def get_last_song_msg(self):
         if len(self.songs) > 0:
-            msg = f"The last track was identified {self.songs[-1].get_last_identified_in_minutes()}"
+            last_song = self.songs[-1]
+            if last_song.get_last_identified_in_seconds() <= 30:
+                return last_song.get_current_playing_msg()
+
+            msg = f"The last track was identified {last_song.get_last_identified_str()}"
             msg += " --> {0}".format(
-                self.songs[-1].formatted_str())
+                last_song.formatted_str())
             return msg
 
         return ""

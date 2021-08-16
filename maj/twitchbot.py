@@ -151,7 +151,7 @@ class TwitchBot(commands.Bot):
         song = Song(info)
         was_added = self.playlist.add(song)
         if was_added:
-            msg = f'Currently playing: "{song.title}" ║ Artist(s): {", ".join(song.artists)}  ║ Album: {song.album}'
+            msg = song.get_current_playing_msg()
             await self.send_message(ctx, msg)
         
         self.is_identifying = False
@@ -284,6 +284,7 @@ class TwitchBot(commands.Bot):
                 msg_reply += song_info + f' @ {self.playlist.songs[-i].get_last_identified_in_minutes()}{SEP_CHAR}'
 
             await self.send_message(ctx, msg_reply, separator=[SEP_CHAR])
+
 
     @commands.command(name='setlist')
     async def setlist(self, ctx):
