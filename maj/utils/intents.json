@@ -12,7 +12,7 @@
         },
         {
             "tag": "compliment",
-            "patterns": ["You look nice today"],
+            "patterns": ["You look nice today", "you're the best"],
             "responses": ["aw shucks.. thanks :)"]
         },
         {

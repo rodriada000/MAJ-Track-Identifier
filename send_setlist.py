@@ -30,7 +30,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
 
-    playlist = SongList(config['recordedSavePath'], config['channel'], datetime.datetime.strptime('2021-08-13', "%Y-%m-%d"))
+    playlist = SongList(config['recordedSavePath'], config['channel'], datetime.datetime.today())
     day_of_week = playlist.setlist_start.weekday()
 
     # save setlist to a spotify playlist
