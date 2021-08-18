@@ -176,7 +176,7 @@ class TwitchBot(commands.Bot):
             elapsedTime = datetime.datetime.now() - self.playlist.songs[-1].last_timestamp
             if elapsedTime.total_seconds() < 15:
                 log.info("already added or identified a song less than 15 seconds ago ...")
-                await self.send_message(ctx, self.playlist.get_last_song_msg())
+                await self.send_message(ctx, self.playlist.get_last_song_msg(self.config['identifyCooldown']))
                 return
 
         song = Song({'title': track_info[0].strip(),
@@ -276,7 +276,7 @@ class TwitchBot(commands.Bot):
 
 
         if num_tracks == 1:
-            await self.send_message(ctx, self.playlist.get_last_song_msg())
+            await self.send_message(ctx, self.playlist.get_last_song_msg(self.config['identifyCooldown']))
         else:
             msg_reply = f"The last {num_tracks} tracks played --> "
             for i in range(1, num_tracks + 1):

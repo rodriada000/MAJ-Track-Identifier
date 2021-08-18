@@ -129,10 +129,10 @@ class SongList:
         self.save_to_file()
         return True
 
-    def get_last_song_msg(self):
+    def get_last_song_msg(self, cooldown = 30):
         if len(self.songs) > 0:
             last_song = self.songs[-1]
-            if last_song.get_last_identified_in_seconds() <= 30:
+            if last_song.get_last_identified_in_seconds() <= cooldown:
                 return last_song.get_current_playing_msg()
 
             msg = f"The last track was identified {last_song.get_last_identified_str()}"
