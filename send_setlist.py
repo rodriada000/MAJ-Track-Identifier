@@ -43,9 +43,10 @@ if __name__ == "__main__":
         spotify_playlist, tracks_added = spotify_client.create_setlist_playlist(playlist, name_prefix=prefix, is_public=False, is_collab=True, verbose=True)
         logger.info(spotify_playlist)
 
-        if config['spotify'].get('enableMegamix', True):
+        megamixes = spotify_client.get_playlist_ids(f'MAJ {get_stream_name_by_day(day_of_week)} Megamix')
+        if config['spotify'].get('enableMegamix', True) and len(megamixes) > 0:
             logger.info('adding to megamix ...')
-            megamix_id = spotify_client.get_playlist_ids(f'MAJ {get_stream_name_by_day(day_of_week)} Megamix')[0]
+            megamix_id = megamixes[0]
             spotify_client.merge_playlists(megamix_id, spotify_playlist['id'])
 
     # post spotify playlist and image of playlist to discord
