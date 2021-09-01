@@ -22,8 +22,8 @@
         },
         {
             "tag": "good",
-            "patterns": [ "good bot", "nice job", "there you go", "got it", "You did well today"],
-            "responses": ["Thank you {0}!", "Glad I could help out {0} :)"]
+            "patterns": [ "good bot", "nice job", "great job", "there you go", "got it", "You did well today", "proud of you"],
+            "responses": ["Thank you {0}!", "Glad I could help out {0} :)", "I appreciate the compliment {0} <3", "beep boop. thank you myana2Hearts"]
         },
         {
             "tag": "bad",
@@ -31,14 +31,39 @@
             "responses": ["oops did I mess up?", "awww I'm sorry {0}", "my b {0}!", "don't give up on me. I'll get it next time {0}... no promises.", "beep boop. sorry..."]
         },
         {
+            "tag": "adequate",
+            "patterns": [ "adequate bot"],
+            "responses": ["eh I try {0}... sometimes :)"]
+        },
+        {
             "tag": "love",
-            "patterns": [ "love you", "we love bot", "i love bot", "Much love"],
+            "patterns": [ "love you", "we love bot", "i love bot", "Much love", "I love @majmusicbot", "@majmusicbot <3"],
             "responses": ["Right back atcha {0} <3", "Yoooo much love {0} <3", "myana2Hearts {0} myana2Hearts", "I love you too {0}. I think... I'm just a bot.", "I know GlitchCat"]
         },
         {
-            "tag": "yourWelcome",
+            "tag": "youreWelcome",
             "patterns": [ "thank you", "thanks", "thx", "thank u"],
             "responses": ["beep boop. You're welcome :)", "You're welcome {0}!", "Ayyeee no problem {0} GlitchCat", "You are more than welcome {0} :)"]
+        },
+        {
+            "tag": "imGood",
+            "patterns": [ "you good?", "you okay?"],
+            "responses": ["All good here {0} myana2Hearts", "Never been better!", "Yeah I think so {0}!", "As good as a bot can be myana2Hearts"]
+        },
+        {
+            "tag": "favoriteFood",
+            "patterns": [ "what's your fav food", "favorite food?"],
+            "responses": ["It's usually soul food GlitchCat"]
+        },
+        {
+            "tag": "datingBot",
+            "patterns": [ "looking for singles", "do you know any singles", "if you find any singles", "have any single friends"],
+            "responses": ["I'm a music bot, not a dating bot {0}!", "I knot a lot of singles, but they aint human LUL", "Check out {1} for the hottest singles... music singles ;)"]
+        },
+        {
+            "tag": "beMyFriend",
+            "patterns": [ "want to be my friend", "are you my friend"],
+            "responses": ["Ofcourse {0} <3 hello friend!", "No.... just kidding ;) Much love to {0} myana2Hearts", "yes yes yes x 1000 myana2Hearts", "only if you want to be friends {0}!"]
         }
     ]
 }
