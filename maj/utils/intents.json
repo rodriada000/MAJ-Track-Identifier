@@ -11,8 +11,8 @@
             "responses": []
         },
         {
-            "tag": "compliment",
-            "patterns": ["You look nice today", "you're the best"],
+            "tag": "compliment", 
+            "patterns": ["You look nice today", "you're the best", "you a peach"],
             "responses": ["aw shucks.. thanks :)"]
         },
         {
@@ -33,7 +33,7 @@
         {
             "tag": "love",
             "patterns": [ "love you", "we love bot", "i love bot", "Much love"],
-            "responses": ["Right back atcha {0} <3", "Yoooo much love {0} <3", "myana2Hearts {0} myana2Hearts", "I love you too {0}. I think... I'm just a bot."]
+            "responses": ["Right back atcha {0} <3", "Yoooo much love {0} <3", "myana2Hearts {0} myana2Hearts", "I love you too {0}. I think... I'm just a bot.", "I know GlitchCat"]
         },
         {
             "tag": "yourWelcome",

@@ -75,7 +75,11 @@ async def run_bot():
         )
 
         running_task = asyncio.create_task(bot.start())
-        indentify_task = asyncio.create_task(identify_on_interval())
+        indentify_task = None
+
+        # auto-id can be turned off if cooldown is < 0 
+        if config.get("identifyCooldown", 30) > 0:
+            indentify_task = asyncio.create_task(identify_on_interval())
 
         try:
             logger.info('waiting for channel to be offline ...')
@@ -89,7 +93,10 @@ async def run_bot():
         await bot.send_channel_message(get_reply_based_on_message("bye", "everyone", bot.playlist.setlist_start))
 
         running_task.cancel()
-        indentify_task.cancel()
+
+        if indentify_task is not None:
+            indentify_task.cancel()
+
         try:
             await running_task
         except asyncio.CancelledError:

@@ -40,6 +40,9 @@ class TwitchBot(commands.Bot):
         self.try_count = 0
         self.max_trys = 10
 
+        self.last_msg = ""
+        self.last_msg_sent = datetime.datetime.now()
+
     async def event_ready(self):
         """
         Called once when the bot goes online.
@@ -63,7 +66,7 @@ class TwitchBot(commands.Bot):
 
         if botreplys.get_intent_tag(message.content) == "identify":
             ctx = await self.get_context(message)
-            await self.get_track_playing(ctx)
+            await self.send_lastsong_message(ctx, message.content) 
             
         elif self.is_bot_mentioned(message.content):
             ctx = await self.get_context(message)
@@ -81,19 +84,43 @@ class TwitchBot(commands.Bot):
 
     @commands.command(name='track', aliases=['playing', 'tune', 'TRACK', 'thong', 'song'])
     async def track(self, ctx):
-        await self.get_track_playing(ctx)
 
-    async def get_track_playing(self, ctx = None):
-        if self.is_identifying is True:
+        if self.config.get("identifyCooldown", 30) > 0:
+            # when auto-id is enabled then just print the last song identified
+            await self.send_lastsong_message(ctx, ctx.content) 
+            return
+
+        if self.is_identifying:
             log.info('already trying to identify!')
-            self.try_count = 0 # reset count so bot will keep trying if user put in '!track' again
             self.trigger_count += 1
 
             if self.trigger_count >= 5:
                 self.trigger_count = 0 # reset count so message sent every 5 times someone sends '!track' 
                 await self.send_message(ctx, botreplys.get_already_listening_reply())
 
-        await self.send_lastsong_message(ctx)
+            return
+        
+        # start identifying 
+        if len(self.playlist.songs) > 0:
+            elapsedTime = datetime.datetime.now() - self.playlist.songs[-1].last_timestamp
+            if elapsedTime.total_seconds() < 30:
+                log.info("already identified a song less than 30 seconds ago ...")
+                await self.send_lastsong_message(ctx, ctx.content) 
+                return
+
+        found = False
+        self.try_count = 0
+        self.is_identifying = True
+
+        while found is False and self.try_count < 5:
+            found = await self.try_identify(ctx)
+            await asyncio.sleep(5)
+            self.try_count += 1
+        
+        self.is_identifying = False
+        if not found:
+            log.info('exceeded number of retrys ...')
+
 
     async def try_identify(self, ctx = None):
 
@@ -108,10 +135,13 @@ class TwitchBot(commands.Bot):
             if ctx is None:
                 ctx = await self.get_context(Message(channel=self.get_channel(self.config['channel']), content="", author=self.config['botUsername'], raw_data="", tags={}))
 
-            file_path = await self.twitch_recorder.record(20)
+            record_length = 16
+            file_path = await self.twitch_recorder.record(record_length)
+            if self.twitch_recorder.is_blocked:
+                log.warning("recording blocked and could not download ...")
 
             if self.twitch_recorder.is_blocked and self.config['enableVpnRotation'] and self.vpn is not None:
-                log.info("recording blocked. switching vpn ...")
+                log.info("switching vpn and trying again ...")
                 # connect to a different vpn and try again
                 if self.vpn.is_connected: 
                     self.vpn.disconnect()
@@ -120,9 +150,9 @@ class TwitchBot(commands.Bot):
                 self.vpn.connect_random()
                 await asyncio.sleep(7) # sleep to let init/connect 
 
-                log.info('re-recording audio ...')
-                file_path = await self.twitch_recorder.record(20)
-                log.warning('blocked again: {0}'.format(self.twitch_recorder.is_blocked))
+                file_path = await self.twitch_recorder.record(record_length)
+                if self.twitch_recorder.is_blocked:
+                    log.warning("recording blocked again ...")
 
         except Exception as e:
             log.error(e)
@@ -367,6 +397,11 @@ class TwitchBot(commands.Bot):
         if self.config['print_only'] or force_quiet:
             return
 
+        # dont send duplicate message within 3 seconds of sending last message
+        elapsed = datetime.datetime.now() - self.last_msg_sent
+        if elapsed.total_seconds() <= 3 and message == self.last_msg:
+            return
+
         if len(message) < 500:
             await ctx.send(message)
         else:
@@ -396,4 +431,7 @@ class TwitchBot(commands.Bot):
                 message = message.replace(sub_msg, "")
 
             await self.send_message_batch(ctx, messages)
+        
+        self.last_msg = message
+        self.last_msg_sent = datetime.datetime.now()
 
