@@ -84,7 +84,7 @@ async def run_bot():
         try:
             logger.info('waiting for channel to be offline ...')
             while bot.twitch_recorder.is_user_online() or config.get('enabledOffline', False):
-                await asyncio.sleep(60)
+                await asyncio.sleep(900)
         except Exception:
             pass
 
