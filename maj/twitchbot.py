@@ -135,7 +135,7 @@ class TwitchBot(commands.Bot):
             if ctx is None:
                 ctx = await self.get_context(Message(channel=self.get_channel(self.config['channel']), content="", author=self.config['botUsername'], raw_data="", tags={}))
 
-            record_length = 16
+            record_length = self.config.get('recordLength', 15)
             file_path = await self.twitch_recorder.record(record_length)
             if self.twitch_recorder.is_blocked:
                 log.warning("recording blocked and could not download ...")

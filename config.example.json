@@ -11,6 +11,7 @@
     "acrSecret": "getThisFromACRCloudConsole",
     "acrHostUrl": "getThisFromACRCloudConsole",
     "recordedSavePath": "F:\\twitch",
+    "recordLength": 14,
     "botToken": {
         "oauthToken": "thisIsGeneratedBasedOnClientIdAndSecret",
         "expirationDate": "1900-01-01"

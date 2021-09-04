@@ -112,7 +112,7 @@ def get_welcome_greeting(person, day):
 
 
 def get_stream_name_by_day(weekday, default="My Analog Journal Stream"):
-    names = ["Jazz Club Monday", default, "Soulful Wednesday", default, "Disco Friday"]
+    names = ["Jazz Club Monday", default, "Soulful Wednesday", default, "Disco Friday", "Out of the Ordinary Saturday", default]
     if weekday < 0 or weekday >= len(names):
         return default
     return names[weekday]
