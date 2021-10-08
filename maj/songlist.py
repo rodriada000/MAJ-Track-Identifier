@@ -13,7 +13,6 @@ class Song:
         self.album = info['album']
         self.artists = info['artists']
         self.duration_s = info.get('duration_s', 0)
-        self.last_timestamp = datetime.datetime.now()
         self.added_by = info.get('added_by', '')
 
         if info.get('last_timestamp', None) is None:

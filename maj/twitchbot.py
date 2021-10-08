@@ -85,19 +85,18 @@ class TwitchBot(commands.Bot):
     @commands.command(name='track', aliases=['playing', 'tune', 'TRACK', 'thong', 'song'])
     async def track(self, ctx):
 
-        if self.config.get("identifyCooldown", 30) > 0:
-            # when auto-id is enabled then just print the last song identified
-            await self.send_lastsong_message(ctx, ctx.content) 
-            return
+        self.trigger_count += 1
+        if self.trigger_count >= 5:
+            self.trigger_count = 0 # reset count so message sent every 5 times someone sends '!track' 
+            await self.send_message(ctx, botreplys.get_already_listening_reply())
 
         if self.is_identifying:
             log.info('already trying to identify!')
-            self.trigger_count += 1
+            return
 
-            if self.trigger_count >= 5:
-                self.trigger_count = 0 # reset count so message sent every 5 times someone sends '!track' 
-                await self.send_message(ctx, botreplys.get_already_listening_reply())
-
+        if self.config.get("identifyCooldown", 30) > 0:
+            # when auto-id is enabled then print song if recently identified (guessing it is currently playing)
+            await self.send_currentplaying_message(ctx, ctx.content) 
             return
         
         # start identifying 
@@ -185,6 +184,7 @@ class TwitchBot(commands.Bot):
             await self.send_message(ctx, msg)
         
         self.is_identifying = False
+        self.trigger_count = 0
         return True
 
     @commands.command(name='majhelp', aliases=['bothelp'])
@@ -315,6 +315,20 @@ class TwitchBot(commands.Bot):
 
             await self.send_message(ctx, msg_reply, separator=[SEP_CHAR])
 
+    async def send_currentplaying_message(self, ctx = None, message=""):
+
+        if len(self.playlist.songs) == 0:
+            return
+
+        if ctx is None:
+            ctx = await self.get_context(Message(channel=self.get_channel(self.config['channel']), content="", author=self.config['botUsername'], raw_data="", tags={}))
+
+        last_song = self.playlist.songs[-1]
+        cooldown = self.config.get('identifyCooldown', 30) + 10 # add 10 as padding
+
+        if last_song.get_last_identified_in_seconds() <= cooldown:
+            await self.send_message(ctx, last_song.get_current_playing_msg())
+            return 
 
     @commands.command(name='setlist')
     async def setlist(self, ctx):

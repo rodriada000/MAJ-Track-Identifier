@@ -38,7 +38,9 @@
             "patterns": [
                 "what song is this",
                 "song?",
-                "whats playing?"
+                "whats playing?",
+                "whats this song",
+                "what's this song"
             ],
             "responses": []
         },

@@ -37,6 +37,11 @@ CANT_RECORD_REPLYS = ["I had trouble listening. Please try again ...",
                       "Failed to record the stream. Please try again ..."]
 
 ALREADY_IDENTIFYING_REPLYS = ["Gimme a second, I'm still trying to listen.",
+                              "I'm always listening, sometimes I just don't know yet!",
+                              "I'm trying my best to look up this song...",
+                              "I'm trying to figure it out. If you know it then use !add song_title;artist_name",
+                              "I'm hearing the song but still trying to identify!",
+                              "I'm no Shazam - give me a minute!",
                               "Hold on... I'm trying here!",
                               "Have faith I'm still trying ...",
                               "I'll figure it out one day ..."
