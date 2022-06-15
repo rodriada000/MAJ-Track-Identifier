@@ -114,6 +114,7 @@ class SpotifyClient:
 
             result = self.search_tracks(title=song.title, artist=song.artists[0])
             if result is not None:
+                song.was_found = True
                 tracks.append(result)
             time.sleep(1) # add a delay between each search so requests arent rapid
 

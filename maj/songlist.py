@@ -14,6 +14,7 @@ class Song:
         self.artists = info['artists']
         self.duration_s = info.get('duration_s', 0)
         self.added_by = info.get('added_by', '')
+        self.was_found = info.get('was_found', False)
 
         if info.get('last_timestamp', None) is None:
             self.last_timestamp = datetime.datetime.now()
@@ -36,7 +37,13 @@ class Song:
                 'duration_s': self.duration_s,
                 'timestamp': self.timestamp.isoformat(),
                 'last_timestamp': self.last_timestamp.isoformat(),
-                'added_by': self.added_by}
+                'added_by': self.added_by,
+                'was_found': self.was_found}
+
+    def found(self):
+        if self.was_found:
+            return "X"
+        return ""
 
     def get_current_playing_msg(self):
         return f'Currently playing: "{self.title}" ║ Artist(s): {", ".join(self.artists)}  ║ Album: {self.album}'
@@ -149,7 +156,7 @@ class SongList:
         with open(csv_path, 'w', newline='', encoding='utf-8') as f:
             write = csv.writer(f)
             
-            write.writerow(["Timestamp", "Title", "Artist", "Album"])
+            write.writerow(["Timestamp", "Title", "Artist", "Album", "Found on Spotify"])
             write.writerows(table)
 
         return csv_path
@@ -161,7 +168,7 @@ class SongList:
 
         with open(html_path, 'w', encoding='utf-8') as f:
             f.write(f"<html><head>{get_stream_name_by_day(self.setlist_start.weekday())} {self.setlist_start.strftime('%Y-%m-%d')}</head><body>")
-            f.write(tabulate(table, headers=["Timestamp", "Title", "Artist", "Album"], tablefmt='html'))
+            f.write(tabulate(table, headers=["Timestamp", "Title", "Artist", "Album", "Found on Spotify"], tablefmt='html'))
             f.write("</body></html>")
 
         options = {
@@ -171,7 +178,7 @@ class SongList:
         imgkit.from_file(html_path, output_path, options=options)
 
     def get_songs_tabular(self):
-        return [[str(s.timestamp - self.setlist_start).split(".")[0], s.title, "; ".join(s.artists), s.album] for s in self.songs]
+        return [[str(s.timestamp - self.setlist_start).split(".")[0], s.title, "; ".join(s.artists), s.album, s.found()] for s in self.songs]
 
 
 
@@ -182,7 +189,7 @@ def demo_usage():
     print(get_stream_name_by_day(today.weekday()))
     print(s.get_last_song_msg())
     print('---')
-    s.add(Song({'title': 'a', 'artists': ['1', '2'], 'album': 'z'}))
+    s.add(Song({'title': 'a', 'artists': ['1', '2'], 'album': 'z', 'was_found': True}))
     s.add(Song({'title': 'a', 'artists': ['1', '2'], 'album': 'z'}))
     s.add(Song({'title': 'b', 'artists': ['3'], 'album': 'x'}))
     s.add(Song({'title': 'c', 'artists': ['4'], 'album': 'y'}))
@@ -221,6 +228,6 @@ def demo_png_save():
 #     print(s.get_last_song_msg())
 #     print('---')
 #     print(s.get_songs_tabular())
-    # demo_png_save()
-    # demo_usage()
-    # demo_csv_save()
+#     demo_png_save()
+#     demo_usage()
+#     demo_csv_save()

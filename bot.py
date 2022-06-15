@@ -4,12 +4,10 @@ import asyncio
 import logging
 from logging.handlers import RotatingFileHandler
 from sys import stdout
-from time import sleep
 from maj.identifier import Identifier
 from maj.twitchrecorder import TwitchRecorder
 from maj.songlist import SongList
 from maj.vpnrotator import VpnRotator
-from maj.pollvote import MajPoll
 from maj.twitchbot import TwitchBot
 from maj.utils.botreplys import load_chat_intents, get_reply_based_on_message
 
@@ -52,9 +50,12 @@ async def identify_on_interval():
         return
 
     while True:
-        await bot.try_identify()
-        logger.info('cooling down until next check ...')
-        await asyncio.sleep(config.get("identifyCooldown", 30))
+        try:
+            await bot.try_identify()
+            logger.info('cooling down until next check ...')
+            await asyncio.sleep(config.get("identifyCooldown", 30))
+        except Exception as e:
+            logger.error(f"identify_on_interval error: {e}")
 
 async def run_bot():
     global bot
@@ -81,12 +82,43 @@ async def run_bot():
         if config.get("identifyCooldown", 30) > 0:
             indentify_task = asyncio.create_task(identify_on_interval())
 
-        try:
-            logger.info('waiting for channel to be offline ...')
-            while bot.twitch_recorder.is_user_online() or config.get('enabledOffline', False):
-                await asyncio.sleep(900)
-        except Exception:
-            pass
+        offline_time = None
+        last_checked = datetime.datetime.today()
+
+        logger.info('waiting for channel to be offline ...')
+        while True:
+            try:
+                # check twitch channel online status every 15 minutes
+                last_checked_seconds = (datetime.datetime.now() - last_checked).total_seconds()
+                if last_checked_seconds > 900:
+                    last_checked = datetime.datetime.today()
+                    if not bot.twitch_recorder.is_user_online() and offline_time is not None:
+                        logger.warning("twitch channel appears offline")
+                        offline_time = datetime.datetime.today()
+                    elif bot.twitch_recorder.is_user_online():
+                        offline_time = None
+
+                    if offline_time is not None:
+                        offline_in_seconds = (datetime.datetime.now() - offline_time).total_seconds()
+
+                        if offline_in_seconds > config.get('shutDownAfterSeconds', 120) and not config.get('enabledOffline', False):
+                            break
+
+                # restart async tasks if an exception occurred
+                if running_task.done() and running_task.exception() is not None:
+                    logger.warn(f'running_task exited with exception... restarting: {running_task.exception()}')
+                    await running_task
+                    running_task = asyncio.create_task(bot.start())
+
+                if indentify_task is not None and indentify_task.done() and indentify_task.exception() is not None:
+                    logger.warn(f'indentify_task exited with exception... restarting: {indentify_task.exception()}')
+                    await indentify_task
+                    indentify_task = asyncio.create_task(identify_on_interval())
+
+                await asyncio.sleep(30)
+            except Exception as e:
+                print(e)
+                pass
 
         logger.info("channel offline. closing down ...")
 
@@ -145,6 +177,12 @@ async def main():
     try:
         bot_task = asyncio.create_task(run_bot())
         await bot_task
+
+        # restart bot if an exception occurred
+        if bot_task.done() and bot_task.exception() is not None:
+            logger.warn(f'bot_task exited with exception... restarting: {bot_task.exception()}')
+            bot_task = asyncio.create_task(run_bot())
+            await bot_task
     except Exception as e:
         logger.warning(f"bot_task ex thrown: {e}")
 

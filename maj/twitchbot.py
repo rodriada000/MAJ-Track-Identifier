@@ -244,6 +244,33 @@ class TwitchBot(commands.Bot):
             msg = f'Removed: "{song.title}" ║ Artist: {", ".join(song.artists)}'
             await self.send_message(ctx, msg)
 
+    @commands.command(name='wrong', aliases=['badbot'])
+    async def wrong_song(self, ctx):
+        if len(self.playlist.songs) == 0:
+            return
+        
+        chat_msgs = ctx.content.split(' ')
+
+        # find last song added by bot
+        song = None
+        idx = len(self.playlist.songs) 
+        while idx > 0:
+            idx -= 1
+            if self.playlist.songs[idx].added_by == "":
+                song = self.playlist.songs[idx]
+                break
+
+        if song is None:
+            return # no song added by bot
+
+        # remove song only if added in past 2 minutes or keyword 'force' is used
+        elapsedTime = datetime.datetime.now() - song.last_timestamp
+        if elapsedTime.total_seconds() < 120 or 'force' in chat_msgs:
+            self.playlist.songs.pop(idx)
+            msg = f'Removed: "{song.title}" ║ Artist: {", ".join(song.artists)}  ║ Album: {self.album}'
+            await self.send_message(ctx, msg)
+
+
     @commands.command(name='score')
     async def score(self, ctx):
         if len(self.playlist.songs) == 0:
@@ -349,16 +376,6 @@ class TwitchBot(commands.Bot):
 
     @commands.command(name='majpoll')
     async def majpoll(self, ctx):
-        chat_msgs = ctx.content.split(' ')
-
-        if ctx.content == "!majpoll":
-            # return  question/results of most recent poll  
-            if self.maj_poll is not None:
-                msg = f"Current poll: {self.maj_poll.question}? Type !vote with your answer... "
-                msg += self.maj_poll.get_poll_results()
-                await self.send_message(ctx, msg, separator=["-", SEP_CHAR])
-            return
-
         if ctx.content == "!majpoll end":
             # end poll
             if self.maj_poll is not None and not self.maj_poll.has_ended:
@@ -368,12 +385,18 @@ class TwitchBot(commands.Bot):
                 msg = f"The poll has ended: {self.maj_poll.question}? "
                 msg += self.maj_poll.get_poll_results()
                 await self.send_message(ctx, msg, separator=["-", SEP_CHAR])
-        else:
+            return
+
+        if self.maj_poll is None or self.maj_poll.has_ended:
             # start a new poll
-            if self.maj_poll is None or self.maj_poll.has_ended:
-                question = ctx.content[8:].strip()
-                self.maj_poll = MajPoll(question)
-                await self.send_message(ctx, f"A new poll has started: {question}? Type !vote with your answer")
+            question = ctx.content[8:].strip()
+            self.maj_poll = MajPoll(question)
+            await self.send_message(ctx, f"A new poll has started: {question}? Type !vote with your answer")
+        elif self.maj_poll is not None:
+            # return  question/results of most recent poll  
+            msg = f"Current poll: {self.maj_poll.question}? Type !vote with your answer... "
+            msg += self.maj_poll.get_poll_results()
+            await self.send_message(ctx, msg, separator=["-", SEP_CHAR])
 
     @commands.command(name='vote')
     async def vote(self, ctx):
