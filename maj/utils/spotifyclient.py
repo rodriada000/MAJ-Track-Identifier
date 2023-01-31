@@ -179,6 +179,9 @@ class SpotifyClient:
         
         return track_ids
 
+    def duplicate_playlist(self, source_playlist_id, playlist_name):
+        playlist = self.create_playlist(playlist_name, f"Duplicate of {source_playlist_id}", False, False)
+        self.merge_playlists(playlist['id'], source_playlist_id)
 
 def demo_search_usage():
     config = {}
@@ -224,6 +227,8 @@ def create_megamix(megamix_name, playlist_keyword):
         print(f'checking {p} for merge ...')
         client.merge_playlists(megamix_id, p)
         time.sleep(random.uniform(1,3)) # added delay to avoid 403s on many merges
+
+
 
     
 

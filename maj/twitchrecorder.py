@@ -102,7 +102,8 @@ class TwitchRecorder:
         self.is_blocked = False
 
         # start streamlink process
-        cmds = ["streamlink", "twitch.tv/" + self.username, self.quality, "-o", recorded_filename, "--http-header", "Authorization=Bearer " + self.oauth_token, "--http-header", "Client-Id=" + self.client_id, "--http-header", "Origin=https://www.twitch.tv"]
+        cmds = ["streamlink", "twitch.tv/" + self.username, self.quality, "-o", recorded_filename, "--http-header", "Authorization=Bearer " + self.oauth_token, "--http-header", "Client-Id=" + self.client_id, "--http-header", "Origin=https://www.twitch.tv", "--twitch-disable-ads"]
+        print(cmds)
         p = subprocess.Popen(cmds, shell=False, stdin=None, stdout=None, stderr=None, close_fds=True)
         
         sleep_time = 5 + length # add 5 for the initial startup of the process and loading the stream
@@ -169,5 +170,5 @@ async def sample_record_with_vpn():
 
     print("is_blocked: {0}".format(twitch_recorder.is_blocked))
 
-# if __name__ == "__main__":
-#     asyncio.run(sample_record_with_vpn())
+if __name__ == "__main__":
+    asyncio.run(sample_record())
