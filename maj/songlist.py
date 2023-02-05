@@ -90,6 +90,7 @@ class SongList:
         self.has_started = False
         self.save_path = save_path + '\\setlists\\' + channel
         self.full_path = self.save_path + '\\' + self.setlist_start.strftime('%Y-%m-%d.json')
+        self.stream_title = '' # looked up when user becomes online;
 
         self.init_dir()
         self.load_from_file()
@@ -100,7 +101,8 @@ class SongList:
     def json(self):
         return {'setlist_start': self.setlist_start.isoformat(),
                 'has_started': self.has_started,
-                'songs': [s.json() for s in self.songs]}
+                'songs': [s.json() for s in self.songs],
+                'stream_title': self.stream_title}
 
     def init_dir(self):
         # create directory for setlists if not exist
@@ -114,6 +116,7 @@ class SongList:
                 self.songs = [Song(s) for s in saved['songs']]
                 self.songs.sort(key=lambda x: x.timestamp)
                 self.has_started = saved.get('has_started', False)
+                self.stream_title = saved.get('stream_title', '')
                 if saved.get('setlist_start', None) is not None:
                     self.setlist_start = datetime.datetime.fromisoformat(saved['setlist_start'])
 

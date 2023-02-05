@@ -104,7 +104,7 @@ class SpotifyClient:
         else:
             return None
 
-    def create_setlist_playlist(self, setlist, name_prefix='MAJ Setlist', is_public=True, is_collab=False, verbose=False):
+    def create_setlist_playlist(self, setlist, name_prefix='MAJ Setlist', description='Automatically generated from python - MAJ Music bot', is_public=True, is_collab=False, verbose=False):
         playlist_name = f'{name_prefix} {setlist.setlist_start.strftime("%Y-%m-%d")}'
         tracks = []
 
@@ -121,7 +121,8 @@ class SpotifyClient:
         if len(tracks) == 0:
             return None, 0 # no songs found that can be added to a playlist
 
-        playlist = self.create_playlist(playlist_name, "Automatically generated from python - MAJ Music bot", is_public, is_collab)
+
+        playlist = self.create_playlist(playlist_name, description, is_public, is_collab)
 
         unique_ids = []
         for t in tracks:

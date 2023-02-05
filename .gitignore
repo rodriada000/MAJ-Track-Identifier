@@ -132,3 +132,4 @@ config.json
 /*.png
 /*.html
 *.log.*
+save_spotify_playlist.py

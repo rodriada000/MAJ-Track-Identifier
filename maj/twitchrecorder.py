@@ -71,9 +71,9 @@ class TwitchRecorder:
             os.makedirs(self.recorded_path)
 
     def is_user_online(self):
-        return self.check_user() is not None
+        return self.get_user() is not None
 
-    def check_user(self):
+    def get_user(self):
         headers = {
             'Client-ID': self.client_id,
             'Authorization': 'Bearer ' + self.oauth_token
@@ -82,11 +82,18 @@ class TwitchRecorder:
         stream = requests.get('https://api.twitch.tv/helix/streams?user_login=' + self.username, headers=headers)
         stream_json = stream.json()
 
+
         if len(stream_json['data']) == 1:
             return stream_json['data'][0]
         else:
             return None
 
+    def get_stream_title(self):
+        user = self.get_user()
+        if user is not None:
+            return user.get('title', '')
+        else:
+            return ''
 
     async def record(self, length):
         filename = self.username + " - " + datetime.datetime.now().strftime("%Y-%m-%d %Hh%Mm%Ss") + ".mp4"
@@ -139,7 +146,7 @@ async def sample_record():
     twitch_recorder = TwitchRecorder(config['botClientID'], config['botSecret'], config['channel'], config['recordedSavePath'])
     twitch_recorder.authorize(config['botToken']['oauthToken'], config['botToken']['expirationDate'])
 
-    stream = twitch_recorder.check_user()
+    stream = twitch_recorder.get_user()
 
     print(stream)
 
@@ -162,7 +169,7 @@ async def sample_record_with_vpn():
 
     await asyncio.sleep(7) # wait for vpn to full init/connect
 
-    stream = twitch_recorder.check_user()
+    stream = twitch_recorder.get_user()
     print(stream)
 
     if stream is not None:

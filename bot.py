@@ -77,14 +77,18 @@ async def run_bot():
         )
 
         running_task = asyncio.create_task(bot.start())
-        indentify_task = None
+        identify_task = None
 
         # auto-id can be turned off if cooldown is < 0 
         if config.get("identifyCooldown", 30) > 0:
-            indentify_task = asyncio.create_task(identify_on_interval())
+            identify_task = asyncio.create_task(identify_on_interval())
 
         offline_time = None
         last_checked = datetime.datetime.today()
+
+        # get title of the stream
+        if playlist.stream_title is None or len(playlist.stream_title) == 0:
+            playlist.stream_title = twitch_recorder.get_stream_title()
 
         logger.info('waiting for channel to be offline ...')
         while True:
@@ -111,10 +115,10 @@ async def run_bot():
                     await running_task
                     running_task = asyncio.create_task(bot.start())
 
-                if indentify_task is not None and indentify_task.done() and indentify_task.exception() is not None:
-                    logger.warn(f'indentify_task exited with exception... restarting: {indentify_task.exception()}')
-                    await indentify_task
-                    indentify_task = asyncio.create_task(identify_on_interval())
+                if identify_task is not None and identify_task.done() and identify_task.exception() is not None:
+                    logger.warn(f'indentify_task exited with exception... restarting: {identify_task.exception()}')
+                    await identify_task
+                    identify_task = asyncio.create_task(identify_on_interval())
 
                 await asyncio.sleep(30)
             except Exception as e:
@@ -127,8 +131,8 @@ async def run_bot():
 
         running_task.cancel()
 
-        if indentify_task is not None:
-            indentify_task.cancel()
+        if identify_task is not None:
+            identify_task.cancel()
 
         try:
             await running_task
