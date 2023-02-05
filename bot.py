@@ -11,12 +11,13 @@ from maj.vpnrotator import VpnRotator
 from maj.twitchbot import TwitchBot
 from maj.utils.botreplys import load_chat_intents, get_reply_based_on_message
 
-DEFAULT_FMT = "%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s"
-
 config = {}
 
 with open('config.json', 'r') as f:
     config = json.load(f)
+
+# setup logging
+DEFAULT_FMT = "%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s"
 
 logFormatter = logging.Formatter(config.get("loggingFormat", DEFAULT_FMT))
 logger = logging.getLogger()
@@ -46,10 +47,10 @@ music_identifier = Identifier(config['acrKey'], config['acrSecret'], config['acr
 bot = None
 
 async def identify_on_interval():
-    if bot.is_identifying:
-        return
-
     while True:
+        if bot is None or bot.is_identifying:
+            continue
+
         try:
             await bot.try_identify()
             logger.info('cooling down until next check ...')
@@ -90,9 +91,9 @@ async def run_bot():
             try:
                 # check twitch channel online status every 15 minutes
                 last_checked_seconds = (datetime.datetime.now() - last_checked).total_seconds()
-                if last_checked_seconds > 900:
+                if last_checked_seconds > 600:
                     last_checked = datetime.datetime.today()
-                    if not bot.twitch_recorder.is_user_online() and offline_time is not None:
+                    if not bot.twitch_recorder.is_user_online() and offline_time is None:
                         logger.warning("twitch channel appears offline")
                         offline_time = datetime.datetime.today()
                     elif bot.twitch_recorder.is_user_online():

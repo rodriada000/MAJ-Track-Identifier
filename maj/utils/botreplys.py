@@ -116,7 +116,7 @@ def get_welcome_greeting(person, day):
     return WELCOME_GREETINGS[random.randint(0, len(WELCOME_GREETINGS) - 1)].format(person, day)
 
 
-def get_stream_name_by_day(weekday, default="My Analog Journal"):
+def get_stream_name_by_day(weekday, default="MAJ Radio"):
     # names = ["Jazz Club Monday", default, "Soulful Wednesday", default, "Disco Friday", "Out of the Ordinary Saturday", default]
     names = [default for i in range(7)]
     if weekday < 0 or weekday >= len(names):

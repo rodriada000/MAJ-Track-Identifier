@@ -37,13 +37,13 @@ if __name__ == "__main__":
     if config.get('spotify') is not None and len(playlist.songs) > 0:
         spotify_client = SpotifyClient(config['spotify']['clientID'], config['spotify']['clientSecret'], scopes="playlist-read-collaborative playlist-modify-public playlist-modify-private playlist-read-private")
         
-        prefix = f"MAJ {get_stream_name_by_day(day_of_week)} Setlist"
+        prefix = f"{get_stream_name_by_day(day_of_week)} Setlist"
 
         logger.info('generating spotify playlist ...')
         spotify_playlist, tracks_added = spotify_client.create_setlist_playlist(playlist, name_prefix=prefix, is_public=False, is_collab=True, verbose=True)
         logger.info(spotify_playlist)
 
-        megamixes = spotify_client.get_playlist_ids(f'MAJ {get_stream_name_by_day(day_of_week)} Megamix')
+        megamixes = spotify_client.get_playlist_ids(f'{get_stream_name_by_day(day_of_week)} Megamix')
         if config['spotify'].get('enableMegamix', True) and len(megamixes) > 0:
             logger.info('adding to megamix ...')
             megamix_id = megamixes[0]

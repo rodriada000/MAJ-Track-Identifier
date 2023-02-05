@@ -2,6 +2,7 @@
     "print_only": false,
     "enabledOffline": false,
     "identifyCooldown": 45,
+    "shutDownAfterSeconds": 120,
     "botIrcToken": "oauth:getthisfromhere",
     "botUsername": "majmusicbot",
     "botClientID": "getThisFromTwitchDevConsole",
@@ -26,8 +27,8 @@
     },
     "discord": {
         "botToken": "getThisFromDiscordAppDashboard",
-        "guildName": "My Analog Journal's server",
-        "channelName": "livestream"
+        "guildName": "MAJ Radio's server",
+        "channelName": "maj-music-bot"
     },
     "loggingFormat": "%(asctime)s [%(threadName)-10.10s] [%(levelname)-4.4s]  %(message)s",
     "loggingLevel": 20
