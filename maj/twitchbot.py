@@ -16,6 +16,7 @@ from maj.discordbot import MajBotClient
 from maj.pollvote import MajPoll
 from maj.utils import botreplys
 from maj.utils.spotifyclient import SpotifyClient
+from maj.utils.chatgpt import ChatGPTBot
 
 log = logging.getLogger(__name__)
 
@@ -30,6 +31,12 @@ class TwitchBot(commands.Bot):
         self.twitch_recorder = recorder
         self.music_identifier = identifier
         self.vpn = kwargs.get("vpn", None)
+
+        chatgpt_key = kwargs.get("chatgpt_key", None)
+        self.chatgpt_bot = None
+
+        if chatgpt_key is not None:
+            self.chatgpt_bot = ChatGPTBot(chatgpt_key)
 
         self.maj_poll = None
         self.prev_polls = []
@@ -74,6 +81,10 @@ class TwitchBot(commands.Bot):
 
             if response != "":
                 await self.send_message(ctx, response)
+            elif self.chatgpt_bot is not None:
+                generated_resp = self.chatgpt_bot.complete_chat(message.content)
+                if generated_resp != "":
+                    await self.send_message(ctx, generated_resp)
             else:
                 log.info(f'[unknownMention] {message.content}')
 

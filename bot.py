@@ -73,7 +73,8 @@ async def run_bot():
             nick=config['botUsername'],
             prefix='!',
             case_insensitive=True,
-            initial_channels=['#' + config['channel']]
+            initial_channels=['#' + config['channel']],
+            chatgpt_key=config['chatGPTKey']
         )
 
         running_task = asyncio.create_task(bot.start())

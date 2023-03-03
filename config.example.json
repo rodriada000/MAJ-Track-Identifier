@@ -11,6 +11,7 @@
     "acrKey": "getThisFromACRCloudConsole",
     "acrSecret": "getThisFromACRCloudConsole",
     "acrHostUrl": "getThisFromACRCloudConsole",
+    "chatGPTKey": "get this from https://platform.openai.com/account/api-keys",
     "recordedSavePath": "F:\\twitch",
     "recordLength": 14,
     "botToken": {

@@ -16,6 +16,7 @@ setup(
         'spotipy',
         'streamlink',
         'tabulate',
-        'twitchio'
+        'twitchio==1.2.3',
+        'openai'
     ]
 )
